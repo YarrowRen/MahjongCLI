@@ -16,11 +16,13 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
     player_idx = available.player
     allowed_set = set(t.id for t in available.can_discard)
 
-    # Riichi: only tsumogiri allowed — auto-discard if no other action
+    # Riichi: only tsumogiri allowed — pause to show board, then auto-discard
     if game_view.my_hand.is_riichi and available.can_discard:
-        if not available.can_tsumo and not available.can_ankan:
-            # Must tsumogiri, no choice
-            return Action(ActionType.DISCARD, player_idx, tile=available.can_discard[0])
+        if not available.can_tsumo and not available.can_ankan and not available.can_kita:
+            tile = available.can_discard[0]
+            console.print(f"  立直中，摸切 [bold]{tile_to_simple_str(tile)}[/bold]")
+            console.input("  > 按回车继续...")
+            return Action(ActionType.DISCARD, player_idx, tile=tile)
 
     # If only discard is available (and nothing else special)
     if not available.has_action and available.can_discard:
