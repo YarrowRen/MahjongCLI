@@ -98,9 +98,8 @@ class RoundState:
         closed_34 = hand.to_34_array()
         actions = AvailableActions(player=player_idx)
 
-        # Check tsumo (win)
-        if is_agari(closed_34):
-            # Check furiten - if furiten, can still tsumo
+        # Check tsumo (win) - only if player actually drew a tile
+        if hand.draw_tile is not None and is_agari(closed_34):
             actions.can_tsumo = True
 
         # Check riichi
@@ -721,10 +720,11 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
 
     current = rs.current_player
     need_draw = True
+    post_call_discard = False  # After chi/pon: only discard allowed
 
     while not rs.is_finished:
+        # --- DRAW PHASE ---
         if need_draw:
-            # Draw phase
             if rs.wall.is_empty:
                 rs.process_exhaustive_draw()
                 break
@@ -739,8 +739,15 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
 
         need_draw = True
 
-        # Player decides after draw
-        available = rs.get_draw_actions(current)
+        # --- ACTION PHASE ---
+        if post_call_discard:
+            # After chi/pon: only discard allowed (no tsumo/ankan/etc.)
+            available = AvailableActions(player=current)
+            available.can_discard = list(rs.players[current].hand.closed_tiles)
+            post_call_discard = False
+        else:
+            available = rs.get_draw_actions(current)
+
         action = get_player_action(current, available)
 
         if action.action_type == ActionType.TSUMO:
@@ -755,13 +762,11 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             rs.process_ankan(current, [t for tiles in available.can_ankan
                                         for t in tiles
                                         if tiles[0].index34 == action.tile.index34])
-            # Draw rinshan tile
             rtile = rs.process_rinshan_draw(current)
             if rtile is None:
                 rs.process_exhaustive_draw()
                 break
 
-            # Check 4 kan abort
             abort = rs.check_abortive_draw()
             if abort:
                 rs.process_abortive_draw(abort)
@@ -819,11 +824,13 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             rs.process_discard(current, action.tile)
 
         else:
-            # Shouldn't happen, but treat as discard of drawn tile
+            # Fallback: discard draw tile or first available
             if rs.players[current].hand.draw_tile:
                 rs.process_discard(current, rs.players[current].hand.draw_tile)
+            elif available.can_discard:
+                rs.process_discard(current, available.can_discard[0])
 
-        # After discard, check other players' responses
+        # --- RESPONSE PHASE ---
         discard_tile = rs.last_discard
         discard_player = rs.last_discard_player
 
@@ -831,58 +838,58 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             current = rs.next_player(current)
             continue
 
-        # Update furiten
         rs.update_temp_furiten(discard_player, discard_tile)
 
-        # Collect responses
-        ron_actions = []
-        call_action = None
-
-        # Check all players for ron first (highest priority)
+        # Collect all response actions and prompt each player ONCE
+        player_choices = {}
         for offset in range(1, rs.num_players):
             i = (discard_player + offset) % rs.num_players
             resp = rs.get_response_actions(i, discard_tile, discard_player)
-            if resp.can_ron:
+            has_any = (resp.can_ron or resp.can_pon or
+                       resp.can_daiminkan or resp.can_chi)
+            if has_any:
                 player_action = get_player_action(i, resp)
-                if player_action.action_type == ActionType.RON:
-                    result = rs.process_ron(i, discard_player, discard_tile)
-                    if result:
-                        ron_actions.append((i, result))
+                player_choices[i] = player_action
+
+        # Resolve by priority: RON > PON/KAN > CHI
+
+        # 1. RON (highest priority)
+        ron_actions = []
+        for offset in range(1, rs.num_players):
+            i = (discard_player + offset) % rs.num_players
+            if i in player_choices and player_choices[i].action_type == ActionType.RON:
+                result = rs.process_ron(i, discard_player, discard_tile)
+                if result:
+                    ron_actions.append((i, result))
 
         if ron_actions:
-            # Triple ron = abortive draw (in 4-player)
             if len(ron_actions) >= 3 and not rs.is_sanma:
                 rs.process_abortive_draw("triple_ron")
                 break
             rs.process_ron_result(ron_actions, discard_player)
             break
 
-        # Check pon/kan (higher priority than chi)
+        # 2. PON / DAIMINKAN (medium priority)
+        call_action = None
         for offset in range(1, rs.num_players):
             i = (discard_player + offset) % rs.num_players
-            resp = rs.get_response_actions(i, discard_tile, discard_player)
-            has_call = resp.can_pon or resp.can_daiminkan
-            if has_call:
-                player_action = get_player_action(i, resp)
-                if player_action.action_type in (ActionType.PON, ActionType.DAIMINKAN):
-                    call_action = player_action
+            if i in player_choices:
+                if player_choices[i].action_type in (ActionType.PON, ActionType.DAIMINKAN):
+                    call_action = player_choices[i]
                     break
 
-        # Check chi (lowest priority, only next player)
+        # 3. CHI (lowest priority, only next player)
         if call_action is None:
             next_p = rs.next_player(discard_player)
-            resp = rs.get_response_actions(next_p, discard_tile, discard_player)
-            if resp.can_chi:
-                player_action = get_player_action(next_p, resp)
-                if player_action.action_type == ActionType.CHI:
-                    call_action = player_action
+            if next_p in player_choices:
+                if player_choices[next_p].action_type == ActionType.CHI:
+                    call_action = player_choices[next_p]
 
         if call_action:
             rs.process_call(call_action)
             current = call_action.player
 
             if call_action.action_type == ActionType.DAIMINKAN:
-                # Draw rinshan
                 rtile = rs.process_rinshan_draw(current)
                 if rtile is None:
                     rs.process_exhaustive_draw()
@@ -894,48 +901,9 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
                 need_draw = False
                 continue
             else:
-                # After chi/pon, player must discard (no draw)
-                available = rs.get_draw_actions(current)
-                disc_action = get_player_action(current, available)
-                if disc_action.action_type == ActionType.DISCARD:
-                    rs.process_discard(current, disc_action.tile)
-                else:
-                    # Force discard last tile
-                    rs.process_discard(current, available.can_discard[0])
-
-                # Continue checking responses to this new discard
-                current = rs.next_player(current)
-                need_draw = True
-                # Need to re-check after this discard
-                # This is handled by the loop continuing
-                # But we need to check for abort and go back to response phase
-                discard_tile = rs.last_discard
-                discard_player = rs.last_discard_player
-                rs.update_temp_furiten(discard_player, discard_tile)
-
-                abort = rs.check_abortive_draw()
-                if abort:
-                    rs.process_abortive_draw(abort)
-                    break
-
-                # Check for ron on this new discard
-                new_ron_actions = []
-                for offset in range(1, rs.num_players):
-                    ii = (discard_player + offset) % rs.num_players
-                    resp = rs.get_response_actions(ii, discard_tile, discard_player)
-                    if resp.can_ron:
-                        pa = get_player_action(ii, resp)
-                        if pa.action_type == ActionType.RON:
-                            res = rs.process_ron(ii, discard_player, discard_tile)
-                            if res:
-                                new_ron_actions.append((ii, res))
-                if new_ron_actions:
-                    if len(new_ron_actions) >= 3 and not rs.is_sanma:
-                        rs.process_abortive_draw("triple_ron")
-                    else:
-                        rs.process_ron_result(new_ron_actions, discard_player)
-                    break
-
+                # After chi/pon: loop back to action phase for discard only
+                need_draw = False
+                post_call_discard = True
                 continue
         else:
             # No calls, move to next player
