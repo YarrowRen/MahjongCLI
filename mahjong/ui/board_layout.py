@@ -10,7 +10,8 @@ from mahjong.player.base import GameView, OpponentView
 from mahjong.core.tile import Tile
 from mahjong.core.player_state import Wind
 from mahjong.ui.tile_display import (
-    tile_to_rich_text, tiles_to_rich_text, format_discard_pool, tile_to_simple_str
+    tile_to_rich_text, tiles_to_rich_text, format_discard_pool,
+    tile_to_simple_str, _tile_display_width
 )
 from mahjong.ui.i18n import *
 from mahjong.rules.scoring import ScoreResult
@@ -30,56 +31,104 @@ def render_board(console: Console, game_view: GameView):
 
     console.print(Panel(header, title="[bold]日本立直麻将[/bold]", border_style="cyan"))
 
-    # Opponents
-    for opp in game_view.opponents:
-        _render_opponent(console, opp)
+    # Build all-player list sorted by seat wind (東→南→西→北 = turn order)
+    _render_all_players(console, game_view)
 
     # Separator
     console.print("─" * 60, style="dim")
 
-    # Player's hand
+    # Player's hand tiles
     _render_player_hand(console, game_view)
 
 
-def _render_opponent(console: Console, opp: OpponentView):
-    """Render an opponent's visible state."""
-    riichi_mark = " [bold red]【立直!】[/bold red]" if opp.is_riichi else ""
-    dealer_mark = " (庄)" if opp.is_dealer else ""
+def _render_all_players(console: Console, game_view: GameView):
+    """Render all players' info and discard pools in turn order (東→南→西→北)."""
+    # Collect all players into a unified list: (wind_value, is_self, data)
+    entries = []
 
-    header = (f"  {opp.name} ({opp.seat_wind.kanji}{dealer_mark}) "
-              f"{opp.score}点{riichi_mark}")
+    # Self
+    hand = game_view.my_hand
+    entries.append({
+        'wind': game_view.my_wind,
+        'is_self': True,
+        'name': '你',
+        'score': game_view.my_score,
+        'is_dealer': game_view.is_dealer,
+        'is_riichi': hand.is_riichi,
+        'melds': hand.melds,
+        'discard_pool': hand.discard_pool,
+        'discard_called': hand.discard_called,
+        'riichi_discard_index': hand.riichi_discard_index,
+    })
+
+    # Opponents
+    for opp in game_view.opponents:
+        entries.append({
+            'wind': opp.seat_wind,
+            'is_self': False,
+            'name': opp.name,
+            'score': opp.score,
+            'is_dealer': opp.is_dealer,
+            'is_riichi': opp.is_riichi,
+            'melds': opp.melds,
+            'discard_pool': opp.discard_pool,
+            'discard_called': opp.discard_called,
+            'riichi_discard_index': -1,
+        })
+
+    # Sort by wind value: 東(0) → 南(1) → 西(2) → 北(3)
+    entries.sort(key=lambda e: e['wind'].value)
+
+    for e in entries:
+        _render_player_row(console, e)
+
+
+def _render_player_row(console: Console, entry: dict):
+    """Render one player's header + melds + discard pool."""
+    wind_kanji = entry['wind'].kanji
+    dealer_mark = " (庄)" if entry['is_dealer'] else ""
+    riichi_mark = " [bold red]【立直!】[/bold red]" if entry['is_riichi'] else ""
+
+    if entry['is_self']:
+        name_display = f"[bold cyan]你[/bold cyan]"
+    else:
+        name_display = entry['name']
+
+    console.print(
+        f"  {name_display} ({wind_kanji}{dealer_mark}) "
+        f"{entry['score']}点{riichi_mark}"
+    )
 
     # Melds
-    meld_text = Text()
-    if opp.melds:
-        meld_text.append("  副露: ")
-        for i, meld in enumerate(opp.melds):
+    if entry['melds']:
+        meld_text = Text("  副露: ")
+        for i, meld in enumerate(entry['melds']):
             if i > 0:
                 meld_text.append(" | ")
             meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
+        console.print(meld_text)
 
     # Discard pool
-    discard_text = Text("  弃牌: ")
-    discard_text.append_text(format_discard_pool(
-        opp.discard_pool,
-        opp.discard_called,
-    ))
+    if entry['discard_pool']:
+        discard_text = Text("  弃牌: ")
+        discard_text.append_text(format_discard_pool(
+            entry['discard_pool'],
+            entry['discard_called'],
+            entry['riichi_discard_index'],
+        ))
+        console.print(discard_text)
+    else:
+        console.print("  弃牌: ", style="dim")
 
-    console.print(header)
-    if opp.melds:
-        console.print(meld_text)
-    console.print(discard_text)
     console.print()
 
 
 def _render_player_hand(console: Console, game_view: GameView):
-    """Render the player's own hand."""
+    """Render the player's own hand tiles (cards only, no info header)."""
     hand = game_view.my_hand
-    dealer_mark = " (庄)" if game_view.is_dealer else ""
 
     console.print(
-        f"  [bold]你的手牌[/bold] ({game_view.my_wind.kanji}{dealer_mark}) "
-        f"{game_view.my_score}点"
+        f"  [bold]你的手牌[/bold]"
     )
 
     # Number labels
@@ -94,30 +143,59 @@ def _render_player_hand(console: Console, game_view: GameView):
         display_tiles.append(t)
     display_tiles.sort()
 
-    # Number row
+    # Calculate per-tile column width: each tile displays as "[XX]" or "[X]"
+    # We need both rows to use the same column widths for alignment.
+    COL_WIDTH = 5  # Fixed display column width per tile slot
+
+    # Build tile name strings first to compute padding
+    tile_names = []
+    for t in display_tiles:
+        name = tile_to_simple_str(t)
+        tile_names.append(f"[{name}]")
+    if draw_tile:
+        name = tile_to_simple_str(draw_tile)
+        tile_names.append(f"[{name}]")
+
+    # Number row - pad each number to match tile column width
     num_text = Text("  ")
     for i in range(len(display_tiles)):
-        num_text.append(f" {i+1:2d} ", style="dim")
+        cell_width = _tile_display_width(tile_names[i]) + 1  # +1 for gap
+        label = str(i + 1)
+        # Center the number within cell_width
+        pad_total = cell_width - len(label)
+        pad_left = pad_total // 2
+        pad_right = pad_total - pad_left
+        num_text.append(" " * pad_left + label + " " * pad_right, style="dim")
 
     if draw_tile:
-        num_text.append("   ", style="dim")
-        num_text.append(f" {len(display_tiles)+1:2d} ", style="dim cyan")
+        idx = len(display_tiles)
+        cell_width = _tile_display_width(tile_names[idx]) + 1
+        label = str(idx + 1)
+        pad_total = cell_width - len(label)
+        pad_left = pad_total // 2
+        pad_right = pad_total - pad_left
+        num_text.append("  ", style="dim")  # gap before draw tile
+        num_text.append(" " * pad_left + label + " " * pad_right, style="dim cyan")
 
     console.print(num_text)
 
-    # Tile row
+    # Tile row - pad each tile cell to match column width
     tile_text = Text("  ")
-    for t in display_tiles:
+    for i, t in enumerate(display_tiles):
         tile_text.append_text(tile_to_rich_text(t))
-        tile_text.append(" ")
+        display_w = _tile_display_width(tile_names[i])
+        gap = COL_WIDTH - display_w
+        if gap < 1:
+            gap = 1
+        tile_text.append(" " * gap)
 
     if draw_tile:
-        tile_text.append("  ")
+        tile_text.append(" ")
         tile_text.append_text(tile_to_rich_text(draw_tile, highlight=True))
 
     console.print(tile_text)
 
-    # Melds
+    # Melds (also shown in player row above, but repeat here near hand for convenience)
     if hand.melds:
         meld_text = Text("  副露: ")
         for i, meld in enumerate(hand.melds):

@@ -14,10 +14,17 @@ from mahjong.ui.i18n import *
 def get_player_input(console: Console, game_view, available: AvailableActions) -> Action:
     """Get action from human player via terminal input."""
     player_idx = available.player
+    allowed_set = set(t.id for t in available.can_discard)
+
+    # Riichi: only tsumogiri allowed — auto-discard if no other action
+    if game_view.my_hand.is_riichi and available.can_discard:
+        if not available.can_tsumo and not available.can_ankan:
+            # Must tsumogiri, no choice
+            return Action(ActionType.DISCARD, player_idx, tile=available.can_discard[0])
 
     # If only discard is available (and nothing else special)
     if not available.has_action and available.can_discard:
-        return _get_discard_input(console, game_view, available)
+        return _get_discard_input(console, game_view, available, allowed_set)
 
     # Show action options
     while True:
@@ -76,13 +83,11 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
         if choice == 'p' and available.can_pon:
             if len(available.can_pon) == 1:
                 return Action(ActionType.PON, player_idx, meld=available.can_pon[0])
-            # Multiple pon options (rare but possible with different tiles)
             return Action(ActionType.PON, player_idx, meld=available.can_pon[0])
 
         if choice == 'c' and available.can_chi:
             if len(available.can_chi) == 1:
                 return Action(ActionType.CHI, player_idx, meld=available.can_chi[0])
-            # Multiple chi options
             console.print("  选择吃的组合:")
             for i, meld in enumerate(available.can_chi):
                 tiles_str = " ".join(tile_to_simple_str(t) for t in meld.tiles)
@@ -116,7 +121,7 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
 
         if choice == 's':
             if available.can_discard:
-                return _get_discard_input(console, game_view, available)
+                return _get_discard_input(console, game_view, available, allowed_set)
             return Action(ActionType.SKIP, player_idx)
 
         # Try as number for discard
@@ -125,15 +130,21 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
                 idx = int(choice) - 1
                 tiles = _get_sorted_display_tiles(game_view)
                 if 0 <= idx < len(tiles):
-                    return Action(ActionType.DISCARD, player_idx, tile=tiles[idx])
+                    tile = tiles[idx]
+                    if tile.id in allowed_set:
+                        return Action(ActionType.DISCARD, player_idx, tile=tile)
+                    else:
+                        console.print("  [red]立直中，只能摸切[/red]")
+                        continue
             except ValueError:
                 pass
 
         console.print("  [red]无效输入，请重试[/red]")
 
 
-def _get_discard_input(console: Console, game_view, available: AvailableActions) -> Action:
-    """Get discard tile selection."""
+def _get_discard_input(console: Console, game_view, available: AvailableActions,
+                       allowed_set: set) -> Action:
+    """Get discard tile selection, validating against allowed tiles."""
     tiles = _get_sorted_display_tiles(game_view)
     n = len(tiles)
 
@@ -143,7 +154,12 @@ def _get_discard_input(console: Console, game_view, available: AvailableActions)
         try:
             idx = int(choice) - 1
             if 0 <= idx < n:
-                return Action(ActionType.DISCARD, available.player, tile=tiles[idx])
+                tile = tiles[idx]
+                if tile.id in allowed_set:
+                    return Action(ActionType.DISCARD, available.player, tile=tile)
+                else:
+                    console.print("  [red]立直中，只能摸切[/red]")
+                    continue
         except ValueError:
             pass
         console.print("  [red]无效输入[/red]")

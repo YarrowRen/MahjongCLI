@@ -23,6 +23,17 @@ SUIT_COLORS = {
 }
 
 
+def _tile_display_width(name: str) -> int:
+    """Calculate the display width of a tile name, accounting for fullwidth chars."""
+    w = 0
+    for ch in name:
+        if '\u4e00' <= ch <= '\u9fff' or '\u3000' <= ch <= '\u30ff' or '\uff00' <= ch <= '\uffef':
+            w += 2  # Fullwidth character
+        else:
+            w += 1
+    return w
+
+
 def tile_to_rich_text(tile: Tile, highlight: bool = False) -> Text:
     """Convert a tile to a Rich Text object with appropriate colors."""
     if tile.is_red:
