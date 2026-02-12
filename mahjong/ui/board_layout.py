@@ -8,7 +8,7 @@ from rich.columns import Columns
 
 from mahjong.player.base import GameView, OpponentView
 from mahjong.core.tile import Tile
-from mahjong.core.player_state import Wind
+from mahjong.core.player_state import PlayerState, Wind
 from mahjong.ui.tile_display import (
     tile_to_rich_text, tiles_to_rich_text, format_discard_pool,
     tile_to_simple_str, _tile_display_width
@@ -265,6 +265,88 @@ def render_win_screen(console: Console, player_name: str,
                        f"{score_result.total_points}点")
 
     console.print()
+
+
+def render_round_end_hands(console: Console, players: list,
+                           player_names: list, winners: list,
+                           loser: int = None):
+    """Render all players' hands after a round ends (win or draw).
+
+    Args:
+        players: List of PlayerState objects
+        player_names: List of player name strings
+        winners: List of winner seat indices
+        loser: Seat index of the deal-in player (for ron)
+    """
+    # Determine ron winning tile (last discard from loser)
+    ron_tile = None
+    if loser is not None and players[loser].hand.discard_pool:
+        ron_tile = players[loser].hand.discard_pool[-1]
+
+    console.print("  [bold]── 全员手牌 ──[/bold]")
+    console.print()
+
+    for i, p in enumerate(players):
+        hand = p.hand
+        wind_kanji = p.seat_wind.kanji
+        is_winner = i in winners
+
+        # Name header
+        if is_winner:
+            tag = " [bold green]【和了】[/bold green]"
+        elif i == loser:
+            tag = " [red]【放铳】[/red]"
+        else:
+            tag = ""
+
+        console.print(f"  {player_names[i]} ({wind_kanji}){tag}")
+
+        # Hand tiles
+        if is_winner and hand.draw_tile:
+            # Tsumo: show sorted hand + draw tile highlighted separately
+            display = [t for t in hand.closed_tiles if t != hand.draw_tile]
+            display.sort()
+            tile_text = Text("  手牌: ")
+            for t in display:
+                tile_text.append_text(tile_to_rich_text(t))
+                tile_text.append(" ")
+            tile_text.append(" ")
+            tile_text.append_text(tile_to_rich_text(hand.draw_tile, highlight=True))
+            tile_text.append(" ← 自摸", style="bold green")
+            console.print(tile_text)
+        elif is_winner and ron_tile:
+            # Ron: show hand + winning tile highlighted separately
+            display = sorted(hand.closed_tiles)
+            tile_text = Text("  手牌: ")
+            for t in display:
+                tile_text.append_text(tile_to_rich_text(t))
+                tile_text.append(" ")
+            tile_text.append(" ")
+            tile_text.append_text(tile_to_rich_text(ron_tile, highlight=True))
+            tile_text.append(" ← 荣和", style="bold green")
+            console.print(tile_text)
+        else:
+            # Non-winner: show sorted hand
+            display = sorted(hand.closed_tiles)
+            if display:
+                tile_text = Text("  手牌: ")
+                for t in display:
+                    tile_text.append_text(tile_to_rich_text(t))
+                    tile_text.append(" ")
+                console.print(tile_text)
+            else:
+                console.print("  手牌: (无)", style="dim")
+
+        # Melds
+        if hand.melds:
+            meld_text = Text("  副露: ")
+            for j, meld in enumerate(hand.melds):
+                if j > 0:
+                    meld_text.append(" | ")
+                meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
+            console.print(meld_text)
+
+        console.print()
 
 
 def render_draw_screen(console: Console, draw_type: str,

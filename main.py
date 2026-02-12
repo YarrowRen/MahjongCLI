@@ -15,7 +15,8 @@ from mahjong.player.greedy_ai import GreedyAI
 from mahjong.player.human import HumanPlayer
 from mahjong.ui.renderer import Renderer
 from mahjong.ui.board_layout import (
-    render_win_screen, render_draw_screen, render_scores, render_game_end
+    render_win_screen, render_draw_screen, render_scores, render_game_end,
+    render_round_end_hands
 )
 from mahjong.ui.i18n import *
 
@@ -178,6 +179,12 @@ def _show_round_result(game, result, player_names, is_spectator):
             loser_name = player_names[result.loser] if result.loser is not None else ""
             render_win_screen(console, winner_name, score_result,
                               is_tsumo, loser_name)
+
+    # Show all players' hands
+    render_round_end_hands(
+        console, game.players, player_names,
+        result.winners, result.loser,
+    )
 
     # Show score changes
     console.print("  得分变化:")

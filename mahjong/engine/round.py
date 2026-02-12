@@ -98,9 +98,10 @@ class RoundState:
         closed_34 = hand.to_34_array()
         actions = AvailableActions(player=player_idx)
 
-        # Check tsumo (win) - only if player actually drew a tile
+        # Check tsumo (win) - only if player actually drew a tile and has yaku
         if hand.draw_tile is not None and is_agari(closed_34):
-            actions.can_tsumo = True
+            if self._has_valid_score(player_idx, hand.draw_tile, is_tsumo=True):
+                actions.can_tsumo = True
 
         # Check riichi
         if (hand.is_menzen and not hand.is_riichi and
@@ -177,7 +178,8 @@ class RoundState:
             riichi_f = any(w in self.riichi_furiten[player_idx] for w in waiting)
 
             if not discard_furiten and not temp_f and not riichi_f:
-                actions.can_ron = True
+                if self._has_valid_score(player_idx, discard_tile, is_tsumo=False):
+                    actions.can_ron = True
 
         if hand.is_riichi:
             # Can only ron after riichi, no other calls
@@ -266,6 +268,39 @@ class RoundState:
                 candidates.append(tile)
 
         return candidates
+
+    def _has_valid_score(self, player_idx: int, win_tile: Tile,
+                         is_tsumo: bool) -> bool:
+        """Check if a win would produce valid yaku (not just a pattern match)."""
+        player = self.players[player_idx]
+        hand = player.hand
+
+        if is_tsumo:
+            test_hand = hand
+        else:
+            test_hand = hand.clone()
+            test_hand.closed_tiles.append(win_tile)
+
+        result = calculate_score(
+            hand=test_hand,
+            win_tile=win_tile,
+            is_tsumo=is_tsumo,
+            seat_wind_34=player.seat_wind.index34,
+            round_wind_34=self.round_wind.index34,
+            is_dealer=player.is_dealer,
+            dora_tiles_34=self.wall.get_dora_tiles_34(),
+            uradora_tiles_34=self.wall.get_uradora_tiles_34(),
+            honba=self.honba,
+            is_riichi=hand.is_riichi,
+            is_double_riichi=hand.is_double_riichi,
+            is_ippatsu=hand.is_ippatsu,
+            is_haitei=self.is_haitei,
+            is_rinshan=self.is_rinshan,
+            is_tenhou=(player.is_dealer and self.turn_count == 0),
+            is_chiihou=(not player.is_dealer and self.first_draw[player_idx]),
+            is_sanma=self.is_sanma,
+        )
+        return result is not None
 
     def process_draw(self, player_idx: int) -> Optional[Tile]:
         """Draw a tile for a player. Returns None if wall is empty."""
@@ -752,7 +787,12 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
 
         if action.action_type == ActionType.TSUMO:
             rs.process_tsumo(current)
-            break
+            if rs.is_finished:
+                break
+            # Safety: tsumo failed (no yaku), force tsumogiri
+            draw = rs.players[current].hand.draw_tile
+            if draw:
+                rs.process_discard(current, draw)
 
         elif action.action_type == ActionType.KYUUSHU:
             rs.process_abortive_draw("kyuushu")
