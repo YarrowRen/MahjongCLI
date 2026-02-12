@@ -9,6 +9,7 @@ class EventType(Enum):
     GAME_START = "game_start"
     GAME_END = "game_end"
     ROUND_START = "round_start"
+    DEAL = "deal"
     ROUND_END = "round_end"
     DRAW = "draw"
     DISCARD = "discard"

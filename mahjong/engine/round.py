@@ -92,6 +92,11 @@ class RoundState:
             "dora_indicators": self.wall.dora_indicators,
         }))
 
+        self.event_bus.emit(GameEvent(EventType.DEAL, {
+            "players": self.players,
+            "wall": self.wall,
+        }))
+
     def get_draw_actions(self, player_idx: int) -> AvailableActions:
         """Get available actions after drawing a tile."""
         hand = self.players[player_idx].hand

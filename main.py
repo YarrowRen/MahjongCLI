@@ -18,6 +18,7 @@ from mahjong.ui.board_layout import (
     render_win_screen, render_draw_screen, render_scores, render_game_end,
     render_round_end_hands
 )
+from mahjong.engine.game_logger import GameLogger
 from mahjong.ui.i18n import *
 
 console = Console()
@@ -92,12 +93,22 @@ def play_game(choice: int):
 
     game = GameState(config, player_names, event_bus)
 
+    # Initialize game logger
+    logger = GameLogger(player_names, {
+        "num_players": config.num_players,
+        "is_sanma": config.is_sanma,
+        "is_tonpuu": config.is_tonpuu,
+        "starting_score": config.starting_score,
+    })
+    logger.subscribe_events(event_bus)
+
     event_bus.emit(GameEvent(EventType.GAME_START, {
         "config": config,
         "players": [(p.name, p.score) for p in game.players],
     }))
 
     console.print(f"\n  [bold]{MSG_GAME_START}[/bold]")
+    console.print(f"  [dim]对局ID: {logger.session_id}[/dim]")
     render_scores(console, [(p.name, p.score) for p in game.players])
 
     if not is_spectator:
@@ -146,6 +157,8 @@ def play_game(choice: int):
             console.print("  [red]局异常结束[/red]")
             break
 
+        logger.end_round(result)
+
         # Show round result
         _show_round_result(game, result, player_names, is_spectator)
 
@@ -159,6 +172,11 @@ def play_game(choice: int):
 
     # Game end
     render_game_end(console, [(p.name, p.score) for p in game.players])
+
+    # Save game log
+    final_scores = {p.name: p.score for p in game.players}
+    log_path = logger.save(final_scores)
+    console.print(f"  [dim]对局日志已保存: {log_path}[/dim]")
 
 
 def _show_round_result(game, result, player_names, is_spectator):
