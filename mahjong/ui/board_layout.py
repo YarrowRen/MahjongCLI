@@ -134,6 +134,10 @@ def _render_player_hand(console: Console, game_view: GameView):
     tiles = hand.closed_tiles
     draw_tile = hand.draw_tile
 
+    # Safety guard: only treat draw_tile as separate if it's actually in closed_tiles
+    if draw_tile is not None and draw_tile not in tiles:
+        draw_tile = None
+
     # Separate drawn tile from rest
     display_tiles = []
     for tile in tiles:

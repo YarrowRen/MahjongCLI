@@ -382,6 +382,7 @@ class RoundState:
             for t in meld.tiles:
                 if t != meld.called_tile and t in hand.closed_tiles:
                     hand.closed_tiles.remove(t)
+            hand.draw_tile = None
             hand.add_meld(meld)
             # Mark the discard as called
             if self.last_discard_player >= 0:
@@ -397,6 +398,7 @@ class RoundState:
             for t in meld.tiles:
                 if t != meld.called_tile and t in hand.closed_tiles:
                     hand.closed_tiles.remove(t)
+            hand.draw_tile = None
             hand.add_meld(meld)
             if self.last_discard_player >= 0:
                 self.players[self.last_discard_player].hand.discard_called[-1] = True
@@ -409,6 +411,7 @@ class RoundState:
             for t in meld.tiles:
                 if t != meld.called_tile and t in hand.closed_tiles:
                     hand.closed_tiles.remove(t)
+            hand.draw_tile = None
             hand.add_meld(meld)
             if self.last_discard_player >= 0:
                 self.players[self.last_discard_player].hand.discard_called[-1] = True
@@ -425,6 +428,7 @@ class RoundState:
         hand = self.players[player_idx].hand
         for t in tiles:
             hand.closed_tiles.remove(t)
+        hand.draw_tile = None
         meld = Meld(MeldType.ANKAN, tuple(tiles))
         hand.add_meld(meld)
         self.kan_count_total += 1
@@ -444,6 +448,7 @@ class RoundState:
         """Process a shouminkan (added kan / promote pon)."""
         hand = self.players[player_idx].hand
         hand.closed_tiles.remove(tile)
+        hand.draw_tile = None
 
         # Find the pon meld to upgrade
         for i, meld in enumerate(hand.melds):
@@ -738,6 +743,7 @@ class RoundState:
         hand = self.players[player_idx].hand
         north_tile = next(t for t in hand.closed_tiles if t.index34 == 30)
         hand.closed_tiles.remove(north_tile)
+        hand.draw_tile = None
         self.players[player_idx].kita_tiles.append(north_tile)
 
         self.event_bus.emit(GameEvent(EventType.KITA, {
@@ -883,8 +889,6 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             current = rs.next_player(current)
             continue
 
-        rs.update_temp_furiten(discard_player, discard_tile)
-
         # Collect all response actions and prompt each player ONCE
         player_choices = {}
         for offset in range(1, rs.num_players):
@@ -913,6 +917,10 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
                 break
             rs.process_ron_result(ron_actions, discard_player)
             break
+
+        # Update temp furiten AFTER response collection:
+        # players who could have ronned but didn't are now temp furiten
+        rs.update_temp_furiten(discard_player, discard_tile)
 
         # 2. PON / DAIMINKAN (medium priority)
         call_action = None

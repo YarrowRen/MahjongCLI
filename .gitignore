@@ -8,3 +8,4 @@ build/
 *.egg
 .DS_Store
 logs/
+CLAUDE.md
