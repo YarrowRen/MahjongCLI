@@ -10,7 +10,7 @@ from mahjong.ui.board_layout import (
     render_board, render_action_prompt, render_win_screen,
     render_draw_screen, render_scores, render_game_end,
 )
-from mahjong.ui.i18n import *
+from mahjong.ui.i18n import t
 
 
 class Renderer:
@@ -61,7 +61,7 @@ class Renderer:
         player_idx = event.data.get("player", -1)
         if player_idx != self.human_seat:
             self.console.print(
-                f"  [bold yellow]{MSG_RIICHI_DECLARE.format(player=f'玩家{player_idx}')}[/bold yellow]"
+                f"  [bold yellow]{t('msg.riichi_declare', player=t('label.player_n', n=player_idx))}[/bold yellow]"
             )
 
     def _on_kan(self, event: GameEvent):
@@ -84,6 +84,8 @@ class Renderer:
         """Display current scores."""
         render_scores(self.console, players)
 
-    def pause(self, message: str = "按回车继续..."):
+    def pause(self, message: str = None):
         """Pause and wait for user input."""
+        if message is None:
+            message = t('prompt.press_enter')
         self.console.input(f"\n  {message}")

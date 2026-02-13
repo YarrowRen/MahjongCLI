@@ -1,150 +1,159 @@
-# 🀄️ 日本立直麻将 - 终端CLI
+# 🀄️ Japanese Riichi Mahjong - Terminal CLI
 
-一款功能完整的日本立直麻将终端CLI游戏，支持四人麻（yonma）和三人麻（sanma），中文界面，使用 Python + Rich 库实现终端渲染。
+A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (yonma) and 3-player (sanma) modes, with multilingual interface (Chinese/Japanese/English), built with Python + Rich.
 
-## 预览
+[中文文档](README-CN.md)
 
-| 游戏界面 | 和了结算 |
+## Preview
+
+| Game Board | Winning Screen |
 |---------|---------|
-| ![游戏界面](data/static/img1.png) | ![和了结算](data/static/img2.png) |
+| ![Game Board](data/static/img1.png) | ![Winning Screen](data/static/img2.png) |
 
-![出牌操作](data/static/img3.png)
+![Discard Action](data/static/img3.png)
 
-## 功能特性
+## Features
 
-- **四人麻将** - 半庄战 / 东风战
-- **三人麻将** - 半庄战 / 东风战（去2m-8m、禁止吃、北抜き）
-- **完整规则引擎** - 30+ 种役种判定、符数计算、得分计算
-- **贪心AI对手** - 基于向听数优化的AI，具备基本防守能力
-- **观战模式** - AI vs AI 自动对局
-- **中文界面** - 全中文显示，彩色牌面
+- **4-Player Mahjong** - Hanchan (half game) / Tonpuusen (east-only)
+- **3-Player Mahjong** - Hanchan / Tonpuusen (no 2m-8m, no chi, kita)
+- **Complete Rule Engine** - 30+ yaku detection, fu calculation, scoring
+- **Greedy AI Opponents** - Shanten-based AI with basic defense
+- **Spectator Mode** - AI vs AI auto-play
+- **Multilingual** - Chinese, Japanese, and English interface
+- **Colored Tiles** - Rich terminal rendering with colored tile display
 
-## 快速开始
+## Quick Start
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 pip install rich pytest
 ```
 
-### 运行游戏
+### Run the Game
 
 ```bash
 python main.py
 ```
 
-### 运行测试
+A language selection menu will appear on startup:
+```
+  请选择语言 / 言語を選択 / Select language:
+    1. 中文
+    2. 日本語
+    3. English
+```
+
+### Run Tests
 
 ```bash
 pytest tests/
 ```
 
-## 游戏操作
+## Controls
 
-| 按键 | 操作 |
+| Key | Action |
 |------|------|
-| 数字 1-14 | 选择打出的牌 |
-| `t` | 自摸（和牌） |
-| `h` | 荣和（吃铳） |
-| `r` | 宣告立直 |
-| `p` | 碰 |
-| `c` | 吃 |
-| `k` | 杠（暗杠/加杠/大明杠） |
-| `n` | 北抜き（三麻专用） |
-| `9` | 九种九牌流局 |
-| `s` | 跳过 |
+| 1-14 | Select tile to discard |
+| `t` | Tsumo (self-draw win) |
+| `h` | Ron (win off discard) |
+| `r` | Declare Riichi |
+| `p` | Pon |
+| `c` | Chi |
+| `k` | Kan (concealed/added/open) |
+| `n` | Kita (3-player only) |
+| `9` | Nine-tile draw |
+| `s` | Skip |
 
-## 项目结构
+## Project Structure
 
 ```
 game/
-├── main.py                     # 入口文件（模式选择菜单）
+├── main.py                     # Entry point (language & mode selection)
 ├── mahjong/
-│   ├── core/                   # 核心数据模型
-│   │   ├── tile.py             # 牌定义（136/34双编码，赤宝牌）
-│   │   ├── meld.py             # 副露数据结构
-│   │   ├── hand.py             # 手牌管理
-│   │   ├── wall.py             # 牌山与王牌
-│   │   └── player_state.py     # 玩家状态
-│   ├── rules/                  # 规则引擎（纯函数，无状态）
-│   │   ├── agari.py            # 和了判定
-│   │   ├── shanten.py          # 向听数计算
-│   │   ├── fu.py               # 符数计算
-│   │   ├── yaku.py             # 役种判定（30+种）
-│   │   ├── scoring.py          # 得分计算
-│   │   ├── furiten.py          # 振听判定
-│   │   └── sanma_rules.py      # 三麻特殊规则
-│   ├── engine/                 # 游戏引擎
-│   │   ├── game.py             # 半庄/东风战管理
-│   │   ├── round.py            # 单局流程控制
-│   │   ├── action.py           # 动作定义
-│   │   └── event.py            # 事件总线
-│   ├── player/                 # 玩家抽象与AI
-│   │   ├── base.py             # Player抽象基类 + GameView
-│   │   ├── human.py            # 人类玩家
-│   │   └── greedy_ai.py        # 贪心AI
-│   └── ui/                     # 终端UI
-│       ├── renderer.py         # Rich渲染引擎
-│       ├── tile_display.py     # 牌面显示
-│       ├── board_layout.py     # 牌桌布局
-│       ├── input_handler.py    # 用户输入处理
-│       └── i18n.py             # 中文本地化
-├── tests/                      # 单元测试
+│   ├── core/                   # Core data models
+│   │   ├── tile.py             # Tile definitions (136/34 dual encoding, red dora)
+│   │   ├── meld.py             # Meld data structures
+│   │   ├── hand.py             # Hand management
+│   │   ├── wall.py             # Wall and dead wall
+│   │   └── player_state.py     # Player state tracking
+│   ├── rules/                  # Rule engine (pure functions, stateless)
+│   │   ├── agari.py            # Win detection
+│   │   ├── shanten.py          # Shanten calculation
+│   │   ├── fu.py               # Fu calculation
+│   │   ├── yaku.py             # Yaku detection (30+ types)
+│   │   ├── scoring.py          # Score calculation
+│   │   ├── furiten.py          # Furiten detection
+│   │   └── sanma_rules.py      # 3-player special rules
+│   ├── engine/                 # Game engine
+│   │   ├── game.py             # Hanchan/Tonpuusen management
+│   │   ├── round.py            # Single round flow control
+│   │   ├── action.py           # Action definitions
+│   │   ├── event.py            # Event bus
+│   │   └── game_logger.py      # Game logging
+│   ├── player/                 # Player abstraction & AI
+│   │   ├── base.py             # Player base class + GameView
+│   │   ├── human.py            # Human player
+│   │   └── greedy_ai.py        # Greedy AI
+│   └── ui/                     # Terminal UI
+│       ├── renderer.py         # Rich rendering engine
+│       ├── tile_display.py     # Tile display formatting
+│       ├── board_layout.py     # Board layout rendering
+│       ├── input_handler.py    # User input handling
+│       ├── i18n.py             # Internationalization (zh/ja/en)
+│       └── locales/            # Translation files
+│           ├── zh.py           # Chinese translations
+│           ├── ja.py           # Japanese translations
+│           └── en.py           # English translations
+├── tests/                      # Unit tests (120 cases)
 └── data/
-    └── scoring_table.json      # 翻符→点数查询表
+    └── scoring_table.json      # Han/fu → points lookup table
 ```
 
-## 支持的役种
+## Supported Yaku
 
-### 1翻
-立直、门前清自摸和、断幺九、平和、一杯口、役牌（场风/自风/三元）、一发、海底摸月、河底捞鱼、岭上开花、抢杠
+### 1 Han
+Riichi, Menzen Tsumo, Tanyao, Pinfu, Iipeikou, Yakuhai (round/seat wind, dragons), Ippatsu, Haitei, Houtei, Rinshan Kaihou, Chankan
 
-### 2翻
-双立直、混全带幺九、一气通贯、三色同顺、三色同刻、对对和、三暗刻、混老头、小三元、七对子
+### 2 Han
+Double Riichi, Chanta, Ittsu, Sanshoku Doujun, Sanshoku Doukou, Toitoi, San Ankou, Honroutou, Shousangen, Chiitoitsu
 
-### 3翻
-混一色、纯全带幺九、二杯口
+### 3 Han
+Honitsu, Junchan, Ryanpeikou
 
-### 6翻
-清一色
+### 6 Han
+Chinitsu
 
-### 役满
-国士无双、四暗刻、大三元、小四喜、大四喜、字一色、清老头、绿一色、九莲宝灯、四杠子、天和、地和
+### Yakuman
+Kokushi Musou, Suu Ankou, Daisangen, Shousuushii, Daisuushii, Tsuuiisou, Chinroutou, Ryuuiisou, Chuuren Poutou, Suukantsu, Tenhou, Chiihou
 
-## 设计亮点
+## Design Highlights
 
-- **双编码系统** - 136编码追踪唯一牌身份，34编码用于高效算法计算
-- **GameView信息屏障** - AI和人类使用相同接口，保证公平性
-- **EventBus解耦** - 引擎通过事件通知UI，便于扩展
-- **AI可替换** - 预留标准接口，后期可替换为AI模型
+- **Dual Encoding** - 136-encoding tracks unique tile identity, 34-encoding for efficient algorithms
+- **GameView Barrier** - AI and human use the same interface, ensuring fairness
+- **EventBus Decoupling** - Engine notifies UI via events for extensibility
+- **Swappable AI** - Standard interface allows future AI model integration
+- **i18n Architecture** - `t()` translation function with locale dictionaries, yaku names used as stable keys
 
-## 依赖
+## Dependencies
 
 - Python >= 3.10
 - rich >= 13.0.0
-- pytest >= 7.0.0（开发）
+- pytest >= 7.0.0 (development)
 
 ---
 
-## 关于本项目
+## About This Project
 
-本项目**完全由 [Claude Code](https://claude.ai/claude-code) 自主实现**，从零开始构建，人类仅提供需求计划文档，全部代码、测试、文档均由 AI 生成。
+This project was **fully implemented by [Claude Code](https://claude.ai/claude-code)** from scratch. Humans only provided requirement documents — all code, tests, and documentation were generated by AI.
 
-### 实现信息
+### Implementation Info
 
-| 项目 | 详情 |
+| Item | Details |
 |------|------|
-| AI 工具 | Claude Code (Anthropic CLI) |
-| 模型 | Claude Opus 4.6 (`claude-opus-4-6`) |
-| 实现过程 | 单次会话完成全部代码编写与调试 |
-| 代码规模 | ~30 个源文件，120 个单元测试 |
-| Token 消耗 | 约 200K+ tokens（含计划解析、代码生成、测试修复） |
-| 完成日期 | 2025-02-12 |
-
-### 会话日志
-
-完整的 Claude Code 会话日志保存在：
-
-```
-.claude/2026-02-12-implement-the-following-plan.txt
-```
+| AI Tool | Claude Code (Anthropic CLI) |
+| Model | Claude Opus 4.6 (`claude-opus-4-6`) |
+| Process | Complete code writing and debugging in a single session |
+| Scale | ~30 source files, 120 unit tests |
+| Tokens | ~200K+ tokens (planning, code generation, test fixing) |
+| Date | 2025-02-12 |

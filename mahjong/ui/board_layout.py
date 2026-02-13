@@ -11,9 +11,9 @@ from mahjong.core.tile import Tile
 from mahjong.core.player_state import PlayerState, Wind
 from mahjong.ui.tile_display import (
     tile_to_rich_text, tiles_to_rich_text, format_discard_pool,
-    tile_to_simple_str, _tile_display_width
+    tile_to_display_str, _tile_display_width
 )
-from mahjong.ui.i18n import *
+from mahjong.ui.i18n import t, translate_yaku, get_draw_message
 from mahjong.rules.scoring import ScoreResult
 
 
@@ -24,12 +24,12 @@ def render_board(console: Console, game_view: GameView):
     # Header: round info
     dora_text = tiles_to_rich_text(game_view.dora_indicators)
     header = Text()
-    header.append(f"  {game_view.round_label}  场风:{game_view.round_wind.kanji}  宝牌: ")
+    header.append(f"  {game_view.round_label}  {t('label.round_wind')}:{game_view.round_wind.display_name}  {t('label.dora')}: ")
     header.append_text(dora_text)
-    header.append(f"\n  {MSG_REMAINING.format(n=game_view.remaining_tiles)}")
-    header.append(f"  {MSG_RIICHI_STICKS.format(n=game_view.riichi_sticks)}")
+    header.append(f"\n  {t('label.remaining', n=game_view.remaining_tiles)}")
+    header.append(f"  {t('label.riichi_sticks', n=game_view.riichi_sticks)}")
 
-    console.print(Panel(header, title="[bold]日本立直麻将[/bold]", border_style="cyan"))
+    console.print(Panel(header, title=f"[bold]{t('label.game_title')}[/bold]", border_style="cyan"))
 
     # Build all-player list sorted by seat wind (東→南→西→北 = turn order)
     _render_all_players(console, game_view)
@@ -42,8 +42,7 @@ def render_board(console: Console, game_view: GameView):
 
 
 def _render_all_players(console: Console, game_view: GameView):
-    """Render all players' info and discard pools in turn order (東→南→西→北)."""
-    # Collect all players into a unified list: (wind_value, is_self, data)
+    """Render all players' info and discard pools in turn order."""
     entries = []
 
     # Self
@@ -51,7 +50,7 @@ def _render_all_players(console: Console, game_view: GameView):
     entries.append({
         'wind': game_view.my_wind,
         'is_self': True,
-        'name': '你',
+        'name': t('label.you'),
         'score': game_view.my_score,
         'is_dealer': game_view.is_dealer,
         'is_riichi': hand.is_riichi,
@@ -76,7 +75,6 @@ def _render_all_players(console: Console, game_view: GameView):
             'riichi_discard_index': -1,
         })
 
-    # Sort by wind value: 東(0) → 南(1) → 西(2) → 北(3)
     entries.sort(key=lambda e: e['wind'].value)
 
     for e in entries:
@@ -85,23 +83,24 @@ def _render_all_players(console: Console, game_view: GameView):
 
 def _render_player_row(console: Console, entry: dict):
     """Render one player's header + melds + discard pool."""
-    wind_kanji = entry['wind'].kanji
-    dealer_mark = " (庄)" if entry['is_dealer'] else ""
-    riichi_mark = " [bold red]【立直!】[/bold red]" if entry['is_riichi'] else ""
+    wind_display = entry['wind'].display_name
+    dealer_mark = f" ({t('label.dealer_mark')})" if entry['is_dealer'] else ""
+    riichi_mark = f" [bold red]【{t('label.riichi_mark')}】[/bold red]" if entry['is_riichi'] else ""
 
     if entry['is_self']:
-        name_display = f"[bold cyan]你[/bold cyan]"
+        name_display = f"[bold cyan]{t('label.you')}[/bold cyan]"
     else:
         name_display = entry['name']
 
+    pts = t('label.points_suffix')
     console.print(
-        f"  {name_display} ({wind_kanji}{dealer_mark}) "
-        f"{entry['score']}点{riichi_mark}"
+        f"  {name_display} ({wind_display}{dealer_mark}) "
+        f"{entry['score']}{pts}{riichi_mark}"
     )
 
     # Melds
     if entry['melds']:
-        meld_text = Text("  副露: ")
+        meld_text = Text(f"  {t('label.melds')} ")
         for i, meld in enumerate(entry['melds']):
             if i > 0:
                 meld_text.append(" | ")
@@ -110,7 +109,7 @@ def _render_player_row(console: Console, entry: dict):
 
     # Discard pool
     if entry['discard_pool']:
-        discard_text = Text("  弃牌: ")
+        discard_text = Text(f"  {t('label.discards')} ")
         discard_text.append_text(format_discard_pool(
             entry['discard_pool'],
             entry['discard_called'],
@@ -118,7 +117,7 @@ def _render_player_row(console: Console, entry: dict):
         ))
         console.print(discard_text)
     else:
-        console.print("  弃牌: ", style="dim")
+        console.print(f"  {t('label.discards')} ", style="dim")
 
     console.print()
 
@@ -128,7 +127,7 @@ def _render_player_hand(console: Console, game_view: GameView):
     hand = game_view.my_hand
 
     console.print(
-        f"  [bold]你的手牌[/bold]"
+        f"  [bold]{t('label.your_hand')}[/bold]"
     )
 
     # Number labels
@@ -137,31 +136,29 @@ def _render_player_hand(console: Console, game_view: GameView):
 
     # Separate drawn tile from rest
     display_tiles = []
-    for t in tiles:
-        if t == draw_tile:
+    for tile in tiles:
+        if tile == draw_tile:
             continue
-        display_tiles.append(t)
+        display_tiles.append(tile)
     display_tiles.sort()
 
     # Calculate per-tile column width: each tile displays as "[XX]" or "[X]"
-    # We need both rows to use the same column widths for alignment.
-    COL_WIDTH = 5  # Fixed display column width per tile slot
+    COL_WIDTH = 5
 
     # Build tile name strings first to compute padding
     tile_names = []
-    for t in display_tiles:
-        name = tile_to_simple_str(t)
+    for tile in display_tiles:
+        name = tile_to_display_str(tile)
         tile_names.append(f"[{name}]")
     if draw_tile:
-        name = tile_to_simple_str(draw_tile)
+        name = tile_to_display_str(draw_tile)
         tile_names.append(f"[{name}]")
 
     # Number row - pad each number to match tile column width
     num_text = Text("  ")
     for i in range(len(display_tiles)):
-        cell_width = _tile_display_width(tile_names[i]) + 1  # +1 for gap
+        cell_width = _tile_display_width(tile_names[i]) + 1
         label = str(i + 1)
-        # Center the number within cell_width
         pad_total = cell_width - len(label)
         pad_left = pad_total // 2
         pad_right = pad_total - pad_left
@@ -174,15 +171,15 @@ def _render_player_hand(console: Console, game_view: GameView):
         pad_total = cell_width - len(label)
         pad_left = pad_total // 2
         pad_right = pad_total - pad_left
-        num_text.append("  ", style="dim")  # gap before draw tile
+        num_text.append("  ", style="dim")
         num_text.append(" " * pad_left + label + " " * pad_right, style="dim cyan")
 
     console.print(num_text)
 
     # Tile row - pad each tile cell to match column width
     tile_text = Text("  ")
-    for i, t in enumerate(display_tiles):
-        tile_text.append_text(tile_to_rich_text(t))
+    for i, tile in enumerate(display_tiles):
+        tile_text.append_text(tile_to_rich_text(tile))
         display_w = _tile_display_width(tile_names[i])
         gap = COL_WIDTH - display_w
         if gap < 1:
@@ -195,9 +192,9 @@ def _render_player_hand(console: Console, game_view: GameView):
 
     console.print(tile_text)
 
-    # Melds (also shown in player row above, but repeat here near hand for convenience)
+    # Melds
     if hand.melds:
-        meld_text = Text("  副露: ")
+        meld_text = Text(f"  {t('label.melds')} ")
         for i, meld in enumerate(hand.melds):
             if i > 0:
                 meld_text.append(" | ")
@@ -211,24 +208,24 @@ def render_action_prompt(console: Console, available):
     """Render available actions."""
     actions = []
     if available.can_tsumo:
-        actions.append(MSG_TSUMO)
+        actions.append(t('action.tsumo'))
     if available.can_ron:
-        actions.append(MSG_RON)
+        actions.append(t('action.ron'))
     if available.can_riichi:
-        actions.append(MSG_RIICHI)
+        actions.append(t('action.riichi'))
     if available.can_pon:
-        actions.append(MSG_PON)
+        actions.append(t('action.pon'))
     if available.can_chi:
-        actions.append(MSG_CHI)
+        actions.append(t('action.chi'))
     if available.can_ankan or available.can_shouminkan:
-        actions.append(MSG_KAN)
+        actions.append(t('action.kan'))
     if available.can_kita:
-        actions.append(MSG_KITA)
+        actions.append(t('action.kita'))
     if available.can_kyuushu:
-        actions.append(MSG_KYUUSHU)
+        actions.append(t('action.kyuushu'))
 
     if actions:
-        console.print(f"  {MSG_CHOOSE_ACTION} {' '.join(actions)}")
+        console.print(f"  {t('prompt.choose_action')} {' '.join(actions)}")
 
 
 def render_win_screen(console: Console, player_name: str,
@@ -238,31 +235,32 @@ def render_win_screen(console: Console, player_name: str,
     console.print()
     if is_tsumo:
         console.print(Panel(
-            f"[bold green]{MSG_TSUMO_WIN.format(player=player_name)}[/bold green]",
+            f"[bold green]{t('msg.tsumo_win', player=player_name)}[/bold green]",
             border_style="green"
         ))
     else:
         console.print(Panel(
-            f"[bold green]{MSG_RON_WIN.format(player=player_name, loser=loser_name)}[/bold green]",
+            f"[bold green]{t('msg.ron_win', player=player_name, loser=loser_name)}[/bold green]",
             border_style="green"
         ))
 
     # Yaku list
-    table = Table(title="役种", show_header=True, border_style="cyan")
-    table.add_column("役名", style="bold")
-    table.add_column("翻数", justify="right")
+    table = Table(title=t('label.yaku_list'), show_header=True, border_style="cyan")
+    table.add_column(t('label.yaku_name'), style="bold")
+    table.add_column(t('label.han_count'), justify="right")
 
     for yaku_name, han in score_result.yaku:
-        table.add_row(yaku_name, f"{han}翻")
+        table.add_row(translate_yaku(yaku_name), t('label.han_format', han=han))
 
     console.print(table)
 
     # Score summary
+    pts = t('label.points_suffix')
     if score_result.is_yakuman:
-        console.print(f"  [bold red]{MSG_YAKUMAN.format(points=score_result.total_points)}[/bold red]")
+        console.print(f"  [bold red]{t('msg.yakuman', points=score_result.total_points)}[/bold red]")
     else:
         console.print(f"  {score_result.rank_name} "
-                       f"{score_result.total_points}点")
+                       f"{score_result.total_points}{pts}")
 
     console.print()
 
@@ -270,76 +268,65 @@ def render_win_screen(console: Console, player_name: str,
 def render_round_end_hands(console: Console, players: list,
                            player_names: list, winners: list,
                            loser: int = None):
-    """Render all players' hands after a round ends (win or draw).
-
-    Args:
-        players: List of PlayerState objects
-        player_names: List of player name strings
-        winners: List of winner seat indices
-        loser: Seat index of the deal-in player (for ron)
-    """
-    # Determine ron winning tile (last discard from loser)
+    """Render all players' hands after a round ends (win or draw)."""
     ron_tile = None
     if loser is not None and players[loser].hand.discard_pool:
         ron_tile = players[loser].hand.discard_pool[-1]
 
-    console.print("  [bold]── 全员手牌 ──[/bold]")
+    console.print(f"  [bold]{t('label.all_hands')}[/bold]")
     console.print()
 
     for i, p in enumerate(players):
         hand = p.hand
-        wind_kanji = p.seat_wind.kanji
+        wind_display = p.seat_wind.display_name
         is_winner = i in winners
 
         # Name header
         if is_winner:
-            tag = " [bold green]【和了】[/bold green]"
+            tag = f" [bold green]【{t('label.winner_tag')}】[/bold green]"
         elif i == loser:
-            tag = " [red]【放铳】[/red]"
+            tag = f" [red]【{t('label.loser_tag')}】[/red]"
         else:
             tag = ""
 
-        console.print(f"  {player_names[i]} ({wind_kanji}){tag}")
+        console.print(f"  {player_names[i]} ({wind_display}){tag}")
 
         # Hand tiles
         if is_winner and hand.draw_tile:
-            # Tsumo: show sorted hand + draw tile highlighted separately
-            display = [t for t in hand.closed_tiles if t != hand.draw_tile]
+            display = [tile for tile in hand.closed_tiles if tile != hand.draw_tile]
             display.sort()
-            tile_text = Text("  手牌: ")
-            for t in display:
-                tile_text.append_text(tile_to_rich_text(t))
+            tile_text = Text(f"  {t('label.hand_tiles')} ")
+            for tile in display:
+                tile_text.append_text(tile_to_rich_text(tile))
                 tile_text.append(" ")
             tile_text.append(" ")
             tile_text.append_text(tile_to_rich_text(hand.draw_tile, highlight=True))
-            tile_text.append(" ← 自摸", style="bold green")
+            tile_text.append(f" {t('label.tsumo_indicator')}", style="bold green")
             console.print(tile_text)
         elif is_winner and ron_tile:
-            # Ron: show hand + winning tile highlighted separately
             display = sorted(hand.closed_tiles)
-            tile_text = Text("  手牌: ")
-            for t in display:
-                tile_text.append_text(tile_to_rich_text(t))
+            tile_text = Text(f"  {t('label.hand_tiles')} ")
+            for tile in display:
+                tile_text.append_text(tile_to_rich_text(tile))
                 tile_text.append(" ")
             tile_text.append(" ")
             tile_text.append_text(tile_to_rich_text(ron_tile, highlight=True))
-            tile_text.append(" ← 荣和", style="bold green")
+            tile_text.append(f" {t('label.ron_indicator')}", style="bold green")
             console.print(tile_text)
         else:
-            # Non-winner: show sorted hand
             display = sorted(hand.closed_tiles)
             if display:
-                tile_text = Text("  手牌: ")
-                for t in display:
-                    tile_text.append_text(tile_to_rich_text(t))
+                tile_text = Text(f"  {t('label.hand_tiles')} ")
+                for tile in display:
+                    tile_text.append_text(tile_to_rich_text(tile))
                     tile_text.append(" ")
                 console.print(tile_text)
             else:
-                console.print("  手牌: (无)", style="dim")
+                console.print(f"  {t('label.hand_tiles')} {t('label.none')}", style="dim")
 
         # Melds
         if hand.melds:
-            meld_text = Text("  副露: ")
+            meld_text = Text(f"  {t('label.melds')} ")
             for j, meld in enumerate(hand.melds):
                 if j > 0:
                     meld_text.append(" | ")
@@ -353,26 +340,27 @@ def render_draw_screen(console: Console, draw_type: str,
                        tenpai_players: list = None):
     """Render draw screen."""
     console.print()
-    msg = ABORTIVE_DRAW_MESSAGES.get(draw_type, MSG_EXHAUSTIVE_DRAW)
+    msg = get_draw_message(draw_type)
     console.print(Panel(f"[bold yellow]{msg}[/bold yellow]",
                         border_style="yellow"))
 
     if tenpai_players is not None and draw_type == "exhaustive":
         for name, is_tenpai in tenpai_players:
-            status = MSG_TENPAI if is_tenpai else MSG_NOTEN
+            status = t('msg.tenpai') if is_tenpai else t('msg.noten')
             console.print(f"  {name}: {status}")
     console.print()
 
 
 def render_scores(console: Console, players: list):
     """Render current scores."""
-    table = Table(title="得分", border_style="cyan")
-    table.add_column("玩家", style="bold")
-    table.add_column("得分", justify="right")
+    table = Table(title=t('label.scores_title'), border_style="cyan")
+    table.add_column(t('label.player'), style="bold")
+    table.add_column(t('label.score'), justify="right")
 
+    pts = t('label.points_suffix')
     for name, score in players:
         style = "green" if score > 0 else "red" if score < 0 else ""
-        table.add_row(name, f"{score}点", style=style)
+        table.add_row(name, f"{score}{pts}", style=style)
 
     console.print(table)
 
@@ -380,21 +368,21 @@ def render_scores(console: Console, players: list):
 def render_game_end(console: Console, players: list):
     """Render final game results."""
     console.print()
-    console.print(Panel(f"[bold]{MSG_GAME_END}[/bold]", border_style="gold1"))
+    console.print(Panel(f"[bold]{t('msg.game_end')}[/bold]", border_style="gold1"))
 
-    # Sort by score
     sorted_players = sorted(players, key=lambda x: x[1], reverse=True)
 
-    table = Table(title=MSG_FINAL_SCORES, border_style="gold1")
-    table.add_column("排名", justify="center")
-    table.add_column("玩家", style="bold")
-    table.add_column("得分", justify="right")
+    table = Table(title=t('label.final_scores'), border_style="gold1")
+    table.add_column(t('label.rank'), justify="center")
+    table.add_column(t('label.player'), style="bold")
+    table.add_column(t('label.score'), justify="right")
 
+    pts = t('label.points_suffix')
     for i, (name, score) in enumerate(sorted_players):
         rank = ["🥇", "🥈", "🥉", "4"][i] if i < 4 else str(i + 1)
         style = "bold green" if i == 0 else ""
-        table.add_row(rank, name, f"{score}点", style=style)
+        table.add_row(rank, name, f"{score}{pts}", style=style)
 
     console.print(table)
-    console.print(f"\n  {MSG_WINNER.format(player=sorted_players[0][0])}")
+    console.print(f"\n  {t('msg.winner', player=sorted_players[0][0])}")
     console.print()

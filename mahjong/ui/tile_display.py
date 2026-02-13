@@ -5,13 +5,29 @@ from rich.text import Text
 from mahjong.core.tile import Tile, TileSuit, TILE_NAMES_34
 
 
-# Short names for display
+# Internal short names (stable, language-independent, used by game_logger)
 TILE_SHORT_NAMES = [
     "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
     "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
     "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
     "東", "南", "西", "北", "白", "發", "中",
 ]
+
+
+def get_tile_short_names() -> list:
+    """Get localized tile short names for display.
+
+    Number tiles (1m-9s) are universal. Honor tiles are translated.
+    """
+    from mahjong.ui.i18n import t
+    return [
+        "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+        "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+        "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+        t("tile.east"), t("tile.south"), t("tile.west"), t("tile.north"),
+        t("tile.haku"), t("tile.hatsu"), t("tile.chun"),
+    ]
+
 
 # Color schemes
 SUIT_COLORS = {
@@ -36,12 +52,13 @@ def _tile_display_width(name: str) -> int:
 
 def tile_to_rich_text(tile: Tile, highlight: bool = False) -> Text:
     """Convert a tile to a Rich Text object with appropriate colors."""
+    names = get_tile_short_names()
     if tile.is_red:
         suit_char = {TileSuit.MAN: 'm', TileSuit.PIN: 'p', TileSuit.SOU: 's'}
         name = f"0{suit_char[tile.suit]}"
         style = "bold red on white"
     else:
-        name = TILE_SHORT_NAMES[tile.index34]
+        name = names[tile.index34]
         color = SUIT_COLORS[tile.suit]
         style = f"bold {color}"
         if highlight:
@@ -51,11 +68,20 @@ def tile_to_rich_text(tile: Tile, highlight: bool = False) -> Text:
 
 
 def tile_to_simple_str(tile: Tile) -> str:
-    """Simple string representation of a tile."""
+    """Simple string representation of a tile (stable, for logging)."""
     if tile.is_red:
         suit_char = {TileSuit.MAN: 'm', TileSuit.PIN: 'p', TileSuit.SOU: 's'}
         return f"0{suit_char[tile.suit]}"
     return TILE_SHORT_NAMES[tile.index34]
+
+
+def tile_to_display_str(tile: Tile) -> str:
+    """Localized string representation of a tile (for UI display)."""
+    names = get_tile_short_names()
+    if tile.is_red:
+        suit_char = {TileSuit.MAN: 'm', TileSuit.PIN: 'p', TileSuit.SOU: 's'}
+        return f"0{suit_char[tile.suit]}"
+    return names[tile.index34]
 
 
 def tiles_to_rich_text(tiles: list, separator: str = " ") -> Text:

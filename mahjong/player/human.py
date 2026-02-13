@@ -47,15 +47,16 @@ class HumanPlayer(Player):
     def choose_riichi_discard(self, game_view: GameView,
                               riichi_candidates: List[Tile]) -> Tile:
         """Choose riichi discard tile."""
-        from mahjong.ui.tile_display import tile_to_simple_str
-        self.console.print("  选择立直打出的牌:")
+        from mahjong.ui.tile_display import tile_to_display_str
+        from mahjong.ui.i18n import t
+        self.console.print(f"  {t('prompt.choose_riichi_discard')}")
         for i, tile in enumerate(riichi_candidates):
-            self.console.print(f"    {i+1}. {tile_to_simple_str(tile)}")
+            self.console.print(f"    {i+1}. {tile_to_display_str(tile)}")
         while True:
             try:
-                idx = int(self.console.input("  > 编号: ").strip()) - 1
+                idx = int(self.console.input(f"  > {t('prompt.number')} ").strip()) - 1
                 if 0 <= idx < len(riichi_candidates):
                     return riichi_candidates[idx]
             except ValueError:
                 pass
-            self.console.print("  [red]无效输入[/red]")
+            self.console.print(f"  [red]{t('prompt.invalid_input')}[/red]")

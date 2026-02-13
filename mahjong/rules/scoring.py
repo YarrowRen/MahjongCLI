@@ -33,17 +33,18 @@ class ScoreResult:
 
     @property
     def rank_name(self) -> str:
+        from mahjong.ui.i18n import t
         if self.han >= 13:
-            return "役満"
+            return t("rank.yakuman")
         if self.han >= 11:
-            return "三倍満"
+            return t("rank.sanbaiman")
         if self.han >= 8:
-            return "倍満"
+            return t("rank.baiman")
         if self.han >= 6:
-            return "跳満"
+            return t("rank.haneman")
         if self.han >= 5 or (self.han >= 4 and self.fu >= 30) or (self.han >= 3 and self.fu >= 60):
-            return "満貫"
-        return f"{self.han}翻{self.fu}符"
+            return t("rank.mangan")
+        return t("rank.han_fu", han=self.han, fu=self.fu)
 
 
 def calculate_score(

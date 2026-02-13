@@ -18,6 +18,13 @@ class Wind(IntEnum):
         return ['東', '南', '西', '北'][self.value]
 
     @property
+    def display_name(self) -> str:
+        """Localized wind name for UI display."""
+        from mahjong.ui.i18n import t
+        keys = ['wind.east', 'wind.south', 'wind.west', 'wind.north']
+        return t(keys[self.value])
+
+    @property
     def index34(self) -> int:
         """34 encoding index for this wind tile."""
         return 27 + self.value
