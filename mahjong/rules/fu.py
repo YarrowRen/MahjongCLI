@@ -42,11 +42,18 @@ def calculate_fu(
     fu = 20  # Base fu (副底)
 
     # Mentsu fu (from closed mentsu)
+    # For ron, a koutsu completed by the winning tile is treated as open (明刻)
+    win_koutsu_found = False
     for m_type, m_idx in mentsu_list:
         if m_type == 'koutsu':
             is_yaochu = m_idx in YAOCHU_INDICES
-            # Closed koutsu
-            base = 8 if is_yaochu else 4
+            if not is_tsumo and not win_koutsu_found and m_idx == win_tile_34:
+                # Ron completing this koutsu: treat as open
+                base = 4 if is_yaochu else 2
+                win_koutsu_found = True
+            else:
+                # Closed koutsu
+                base = 8 if is_yaochu else 4
             fu += base
 
     # Meld fu (from open/closed melds)

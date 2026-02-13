@@ -67,6 +67,7 @@ def calculate_score(
     is_tenhou: bool = False,
     is_chiihou: bool = False,
     is_sanma: bool = False,
+    kita_count: int = 0,
 ) -> Optional[ScoreResult]:
     """Calculate score for a winning hand. Returns None if no valid yaku."""
     best_result = None
@@ -77,7 +78,7 @@ def calculate_score(
         all_tiles.extend(meld.tiles)
     all_tiles_34 = tiles_to_34_array(all_tiles)
 
-    dora_count = sum(all_tiles_34[d] for d in dora_tiles_34)
+    dora_count = sum(all_tiles_34[d] for d in dora_tiles_34) + kita_count
     red_dora_count = sum(1 for t in all_tiles if t.is_red)
 
     # Ura-dora only for riichi

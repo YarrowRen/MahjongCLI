@@ -345,16 +345,11 @@ class RoundState:
         self.last_discard_player = player_idx
         self.is_rinshan = False
 
-        # Cancel ippatsu for all players
-        for p in self.players:
-            if p.hand.is_ippatsu:
-                p.hand.is_ippatsu = False
-                self.event_bus.emit(GameEvent(EventType.IPPATSU_CANCEL, {
-                    "player": p.seat,
-                }))
-
-        # Restore: only cancel OTHER players' ippatsu
-        self.players[player_idx].hand.is_ippatsu = False  # own ippatsu cancels on discard anyway
+        # Cancel only the discarding player's own ippatsu.
+        # Other players' ippatsu is cancelled by calls (chi/pon/kan), not discards.
+        # Note: for riichi discards, process_riichi re-enables ippatsu after this.
+        if self.players[player_idx].hand.is_ippatsu:
+            self.players[player_idx].hand.is_ippatsu = False
 
         # Track first discards for 4-wind abort
         if self.first_draw[player_idx]:

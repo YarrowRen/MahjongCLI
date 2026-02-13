@@ -41,6 +41,18 @@ class Wall:
         self._dora_revealed = 1  # Start with 1 dora indicator revealed
         self._rinshan_drawn = 0  # How many rinshan tiles have been drawn
 
+    @classmethod
+    def from_tiles(cls, live_wall_tiles, dead_wall_tiles, is_sanma=False):
+        """Build a Wall from pre-determined tile lists (for replay mode)."""
+        wall = cls.__new__(cls)
+        wall.is_sanma = is_sanma
+        wall.all_tiles = list(live_wall_tiles) + list(dead_wall_tiles)
+        wall.live_wall = list(live_wall_tiles)
+        wall.dead_wall = list(dead_wall_tiles)
+        wall._dora_revealed = 1
+        wall._rinshan_drawn = 0
+        return wall
+
     @property
     def remaining(self) -> int:
         """Number of drawable tiles remaining in live wall."""
