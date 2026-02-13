@@ -1,6 +1,8 @@
 # 🀄️ 日本立直麻将 - 终端CLI
 
-一款功能完整的日本立直麻将终端CLI游戏，支持四人麻（yonma）和三人麻（sanma），中文界面，使用 Python + Rich 库实现终端渲染。
+一款功能完整的日本立直麻将终端CLI游戏，支持四人麻（yonma）和三人麻（sanma），多语言界面（中/日/英），使用 Python + Rich 库实现终端渲染。
+
+[![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
 
 ## 预览
 
@@ -17,21 +19,33 @@
 - **完整规则引擎** - 30+ 种役种判定、符数计算、得分计算
 - **贪心AI对手** - 基于向听数优化的AI，具备基本防守能力
 - **观战模式** - AI vs AI 自动对局
-- **中文界面** - 全中文显示，彩色牌面
+- **多语言界面** - 中文/日文/英文，彩色牌面
+
+## 安装
+
+```bash
+pipx install riichi-mahjong-cli
+```
+
+或使用 pip：
+
+```bash
+pip install riichi-mahjong-cli
+```
 
 ## 快速开始
 
-### 安装依赖
-
 ```bash
-pip install rich pytest
+riichi
 ```
 
-### 运行游戏
+或从源码运行：
 
 ```bash
 python main.py
 ```
+
+游戏默认中文启动，可在主菜单选项 6 切换语言。
 
 ### 运行测试
 
@@ -58,8 +72,9 @@ pytest tests/
 
 ```
 game/
-├── main.py                     # 入口文件（模式选择菜单）
+├── main.py                     # 入口文件（兼容直接运行）
 ├── mahjong/
+│   ├── cli.py                  # CLI入口（riichi 命令）
 │   ├── core/                   # 核心数据模型
 │   │   ├── tile.py             # 牌定义（136/34双编码，赤宝牌）
 │   │   ├── meld.py             # 副露数据结构
@@ -78,7 +93,8 @@ game/
 │   │   ├── game.py             # 半庄/东风战管理
 │   │   ├── round.py            # 单局流程控制
 │   │   ├── action.py           # 动作定义
-│   │   └── event.py            # 事件总线
+│   │   ├── event.py            # 事件总线
+│   │   └── game_logger.py      # 对局日志
 │   ├── player/                 # 玩家抽象与AI
 │   │   ├── base.py             # Player抽象基类 + GameView
 │   │   ├── human.py            # 人类玩家
@@ -88,8 +104,12 @@ game/
 │       ├── tile_display.py     # 牌面显示
 │       ├── board_layout.py     # 牌桌布局
 │       ├── input_handler.py    # 用户输入处理
-│       └── i18n.py             # 中文本地化
-├── tests/                      # 单元测试
+│       ├── i18n.py             # 国际化（中/日/英）
+│       └── locales/            # 翻译文件
+│           ├── zh.py           # 中文
+│           ├── ja.py           # 日文
+│           └── en.py           # 英文
+├── tests/                      # 单元测试（120个）
 └── data/
     └── scoring_table.json      # 翻符→点数查询表
 ```

@@ -2,6 +2,8 @@
 
 A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (yonma) and 3-player (sanma) modes, with multilingual interface (Chinese/Japanese/English), built with Python + Rich.
 
+[![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
+
 [中文文档](README-CN.md)
 
 ## Preview
@@ -22,27 +24,31 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 - **Multilingual** - Chinese, Japanese, and English interface
 - **Colored Tiles** - Rich terminal rendering with colored tile display
 
-## Quick Start
-
-### Install Dependencies
+## Install
 
 ```bash
-pip install rich pytest
+pipx install riichi-mahjong-cli
 ```
 
-### Run the Game
+Or with pip:
+
+```bash
+pip install riichi-mahjong-cli
+```
+
+## Quick Start
+
+```bash
+riichi
+```
+
+Or run from source:
 
 ```bash
 python main.py
 ```
 
-A language selection menu will appear on startup:
-```
-  请选择语言 / 言語を選択 / Select language:
-    1. 中文
-    2. 日本語
-    3. English
-```
+The game starts in Chinese by default. You can switch language from the main menu (option 6).
 
 ### Run Tests
 
@@ -69,8 +75,9 @@ pytest tests/
 
 ```
 game/
-├── main.py                     # Entry point (language & mode selection)
+├── main.py                     # Entry point (backward compatible)
 ├── mahjong/
+│   ├── cli.py                  # CLI entry point (riichi command)
 │   ├── core/                   # Core data models
 │   │   ├── tile.py             # Tile definitions (136/34 dual encoding, red dora)
 │   │   ├── meld.py             # Meld data structures
