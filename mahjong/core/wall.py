@@ -39,17 +39,20 @@ class Wall:
 
         # Dora state
         self._dora_revealed = 1  # Start with 1 dora indicator revealed
+        self._dora_revealed_limit = None
         self._rinshan_drawn = 0  # How many rinshan tiles have been drawn
 
     @classmethod
-    def from_tiles(cls, live_wall_tiles, dead_wall_tiles, is_sanma=False):
+    def from_tiles(cls, live_wall_tiles, dead_wall_tiles, is_sanma=False,
+                   dora_revealed: int = 1):
         """Build a Wall from pre-determined tile lists (for replay mode)."""
         wall = cls.__new__(cls)
         wall.is_sanma = is_sanma
         wall.all_tiles = list(live_wall_tiles) + list(dead_wall_tiles)
         wall.live_wall = list(live_wall_tiles)
         wall.dead_wall = list(dead_wall_tiles)
-        wall._dora_revealed = 1
+        wall._dora_revealed = max(1, min(dora_revealed, 5))
+        wall._dora_revealed_limit = wall._dora_revealed
         wall._rinshan_drawn = 0
         return wall
 
@@ -78,6 +81,12 @@ class Wall:
 
     def reveal_new_dora(self):
         """Reveal a new dora indicator (after kan)."""
+        # Kan reduces live wall by 1 to keep dead wall at 14 tiles.
+        if self.live_wall:
+            self.live_wall.pop()
+        if self._dora_revealed_limit is not None:
+            if self._dora_revealed >= self._dora_revealed_limit:
+                return
         if self._dora_revealed < 5:
             self._dora_revealed += 1
 

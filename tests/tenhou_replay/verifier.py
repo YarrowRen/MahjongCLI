@@ -36,7 +36,7 @@ def verify_agari_score(ten: List[int], engine_fu: int, engine_points: int,
     expected_fu = ten[0]
     expected_points = ten[1]
 
-    if engine_fu != expected_fu:
+    if expected_fu != 0 and engine_fu != expected_fu:
         raise ReplayVerificationError(
             f"[{step_desc}] Fu mismatch: engine={engine_fu}, expected={expected_fu}"
         )

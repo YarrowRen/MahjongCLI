@@ -79,12 +79,18 @@ def calculate_score(
     all_tiles_34 = tiles_to_34_array(all_tiles)
 
     dora_count = sum(all_tiles_34[d] for d in dora_tiles_34) + kita_count
+    # In sanma, kita tiles are removed from hand but still count as dora
+    # when north is a dora indicator result.
+    if is_sanma and kita_count > 0 and 30 in dora_tiles_34:
+        dora_count += kita_count
     red_dora_count = sum(1 for t in all_tiles if t.is_red)
 
     # Ura-dora only for riichi
     uradora_count = 0
     if is_riichi or is_double_riichi:
         uradora_count = sum(all_tiles_34[d] for d in uradora_tiles_34)
+        if is_sanma and kita_count > 0 and 30 in uradora_tiles_34:
+            uradora_count += kita_count
 
     # Try all possible decompositions and pick the highest score
     closed_34 = hand.to_34_array()
@@ -233,7 +239,7 @@ def _build_score_result(
     is_dealer, is_tsumo, honba, is_sanma,
 ) -> ScoreResult:
     """Build the final ScoreResult with payment amounts."""
-    honba_bonus_ron = 300 * honba
+    honba_bonus_ron = (200 if is_sanma else 300) * honba
     honba_bonus_tsumo_each = 100 * honba
 
     if is_tsumo:

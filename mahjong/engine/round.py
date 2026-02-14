@@ -57,6 +57,7 @@ class RoundState:
         self.first_draw = [True] * self.num_players
         self.kan_count_total = 0
         self.kan_this_turn = False
+        self.pending_kakan_dora = 0
         self.last_discard: Optional[Tile] = None
         self.last_discard_player: int = -1
         self.is_rinshan = False
@@ -299,7 +300,8 @@ class RoundState:
             is_riichi=hand.is_riichi,
             is_double_riichi=hand.is_double_riichi,
             is_ippatsu=hand.is_ippatsu,
-            is_haitei=self.is_haitei,
+            is_haitei=self.is_haitei if is_tsumo else False,
+            is_houtei=self.is_haitei if not is_tsumo else False,
             is_rinshan=self.is_rinshan,
             is_tenhou=(player.is_dealer and self.turn_count == 0),
             is_chiihou=(not player.is_dealer and self.first_draw[player_idx]),
@@ -333,6 +335,11 @@ class RoundState:
                 "tile": tile,
                 "is_rinshan": True,
             }))
+            # For kakan, reveal the new dora after the replacement draw
+            # so it doesn't apply to the rinshan tile itself.
+            if self.pending_kakan_dora > 0:
+                self.wall.reveal_new_dora()
+                self.pending_kakan_dora -= 1
         return tile
 
     def process_discard(self, player_idx: int, tile: Tile):
@@ -458,7 +465,8 @@ class RoundState:
                 break
 
         self.kan_count_total += 1
-        self.wall.reveal_new_dora()
+        # Reveal after the replacement draw (kakan chankan timing)
+        self.pending_kakan_dora += 1
 
         # Cancel all ippatsu
         for p in self.players:
@@ -475,9 +483,10 @@ class RoundState:
         hand = self.players[player_idx].hand
 
         # Check for double riichi (first turn, no calls made)
-        is_double = self.first_draw[player_idx] and all(
-            len(p.hand.melds) == 0 for p in self.players
-        )
+        no_calls = all(len(p.hand.melds) == 0 for p in self.players)
+        if self.is_sanma:
+            no_calls = no_calls and all(len(p.kita_tiles) == 0 for p in self.players)
+        is_double = self.first_draw[player_idx] and no_calls
 
         hand.is_riichi = True
         hand.is_ippatsu = True
@@ -741,6 +750,10 @@ class RoundState:
         hand.draw_tile = None
         self.players[player_idx].kita_tiles.append(north_tile)
 
+        # Cancel all ippatsu
+        for p in self.players:
+            p.hand.is_ippatsu = False
+
         self.event_bus.emit(GameEvent(EventType.KITA, {
             "player": player_idx,
         }))
@@ -855,7 +868,9 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
 
         elif action.action_type == ActionType.KITA:
             rs.process_kita(current)
-            rtile = rs.process_rinshan_draw(current)
+            # KITA draw is treated as rinshan (嶺上開花) in sanma
+            rs.is_rinshan = True
+            rtile = rs.process_draw(current)
             if rtile is None:
                 rs.process_exhaustive_draw()
                 break

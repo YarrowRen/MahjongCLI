@@ -16,11 +16,11 @@ from .parser import RoundData, EventType
 from .decoder import TenhouMeldType
 
 
-def build_wall(rd: RoundData) -> Tuple[List[Tile], List[Tile]]:
+def build_wall(rd: RoundData) -> Tuple[List[Tile], List[Tile], int]:
     """Build live_wall and dead_wall tile lists from round data.
 
     Returns:
-        (live_wall_tiles, dead_wall_tiles) where:
+        (live_wall_tiles, dead_wall_tiles, dora_revealed) where:
         - live_wall_tiles: tiles in draw order (after initial deal)
         - dead_wall_tiles: 14 tiles laid out as:
             [dora0, ura0, dora1, ura1, dora2, ura2, dora3, ura3, dora4, ura4,
@@ -38,8 +38,12 @@ def build_wall(rd: RoundData) -> Tuple[List[Tile], List[Tile]]:
         if event.event_type == EventType.MELD and event.decoded_meld is not None:
             mt = event.decoded_meld.meld_type
             if mt in (TenhouMeldType.ANKAN, TenhouMeldType.DAIMINKAN,
-                      TenhouMeldType.KAKAN, TenhouMeldType.KITA):
+                      TenhouMeldType.KAKAN):
                 expect_rinshan = True
+        elif event.event_type == EventType.AGARI:
+            # Chankan can occur before the rinshan draw; clear expectation.
+            if expect_rinshan:
+                expect_rinshan = False
         elif event.event_type == EventType.DRAW:
             if expect_rinshan:
                 rinshan_ids.append(event.tile_id)
@@ -48,19 +52,23 @@ def build_wall(rd: RoundData) -> Tuple[List[Tile], List[Tile]]:
                 live_draw_ids.append(event.tile_id)
 
     # Collect dora indicators and uradora from AGARI events
+    # Use the most complete set across winners (double ron can differ).
     dora_ids: List[int] = []
     uradora_ids: List[int] = []
     for event in rd.events:
-        if event.event_type == EventType.AGARI:
-            if event.agari_dora:
-                dora_ids = list(event.agari_dora)
-            if event.agari_uradora:
-                uradora_ids = list(event.agari_uradora)
-            break
+        if event.event_type != EventType.AGARI:
+            continue
+        if event.agari_dora and len(event.agari_dora) > len(dora_ids):
+            dora_ids = list(event.agari_dora)
+        if event.agari_uradora and len(event.agari_uradora) > len(uradora_ids):
+            uradora_ids = list(event.agari_uradora)
 
     # If no AGARI, use the initial dora indicator
     if not dora_ids:
         dora_ids = [rd.dora_indicator]
+
+    # Track how many dora indicators are actually revealed in Tenhou data
+    dora_revealed = max(1, len(dora_ids))
 
     # Build dead wall:
     # Positions 0,2,4,6,8 = dora indicators
@@ -118,4 +126,4 @@ def build_wall(rd: RoundData) -> Tuple[List[Tile], List[Tile]]:
     live_wall_tiles = [ALL_TILES_136[tid] for tid in live_all_ids]
     dead_wall_tiles = [ALL_TILES_136[tid] for tid in dead_wall]
 
-    return live_wall_tiles, dead_wall_tiles
+    return live_wall_tiles, dead_wall_tiles, dora_revealed

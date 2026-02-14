@@ -16,6 +16,7 @@ from mahjong.core.hand import Hand
 from mahjong.core.wall import Wall
 from mahjong.core.player_state import PlayerState, Wind
 from mahjong.engine.round import RoundState, RoundResult
+from mahjong.engine.action import ActionType
 from mahjong.engine.event import EventBus
 from mahjong.rules.scoring import calculate_score
 
@@ -39,8 +40,13 @@ def replay_round(rd: RoundData, round_index: int = 0):
     is_sanma = rd.is_sanma
 
     # 1. Build wall
-    live_tiles, dead_tiles = build_wall(rd)
-    wall = Wall.from_tiles(live_tiles, dead_tiles, is_sanma=is_sanma)
+    live_tiles, dead_tiles, dora_revealed = build_wall(rd)
+    wall = Wall.from_tiles(
+        live_tiles,
+        dead_tiles,
+        is_sanma=is_sanma,
+        dora_revealed=dora_revealed,
+    )
 
     # 2. Create players with initial scores
     players = []
@@ -80,27 +86,50 @@ def replay_round(rd: RoundData, round_index: int = 0):
 
     # 6. Process events sequentially
     riichi_pending = {}  # player -> True when REACH step=1 seen, awaiting discard
-    expect_rinshan = False  # True when next draw is a rinshan (after kan)
+    riichi_pending_double = {}  # player -> is_double_riichi at step=1
+    riichi_pending_blocked = {}  # player -> ippatsu cancelled before step=2
+    riichi_pending_candidates = {}  # player -> riichi discard candidates
+    last_draw_available = {}  # player -> AvailableActions from last draw
+    expect_rinshan = False  # True when next draw should be treated as rinshan
+    rinshan_from_live = False  # True when rinshan draw comes from live wall (kita)
     step = 0
 
+    last_was_agari = False
+    pending_temp_furiten = None  # (discard_player, tile) awaiting confirmation
     for event in rd.events:
         step_desc = f"R{round_index} step {step}"
         step += 1
 
+        # Apply deferred temp furiten: if the previous discard was NOT
+        # followed by an AGARI, now commit the temp furiten update.
+        if event.event_type != EventType.AGARI and pending_temp_furiten is not None:
+            dp, dt = pending_temp_furiten
+            rs.update_temp_furiten(dp, dt)
+            pending_temp_furiten = None
+
         if event.event_type == EventType.DRAW:
+            last_was_agari = False
             player = event.player
             tile_id = event.tile_id
 
             if expect_rinshan:
-                # Rinshan draw from dead wall
-                tile = wall.draw_rinshan()
+                # Rinshan draw (after kan or kita)
+                if rinshan_from_live:
+                    tile = wall.draw()
+                else:
+                    tile = wall.draw_rinshan()
                 expect_rinshan = False
+                rinshan_from_live = False
                 rs.is_rinshan = True
                 if tile is None:
                     raise ReplayVerificationError(
                         f"[{step_desc}] Cannot draw rinshan for player {player}"
                     )
                 rs.players[player].hand.draw(tile)
+                # Reveal pending kakan dora after replacement draw
+                if rs.pending_kakan_dora > 0:
+                    rs.wall.reveal_new_dora()
+                    rs.pending_kakan_dora -= 1
             else:
                 # Normal draw from live wall
                 rs.clear_temp_furiten(player)
@@ -117,6 +146,9 @@ def replay_round(rd: RoundData, round_index: int = 0):
                 # Check haitei
                 rs.is_haitei = wall.remaining == 0
 
+            # Cache available actions after draw (for legality checks)
+            last_draw_available[player] = rs.get_draw_actions(player)
+
             if tile.id != tile_id:
                 raise ReplayVerificationError(
                     f"[{step_desc}] Player {player} drew tile {tile.id} "
@@ -125,45 +157,96 @@ def replay_round(rd: RoundData, round_index: int = 0):
                 )
 
         elif event.event_type == EventType.DISCARD:
+            last_was_agari = False
             player = event.player
             tile_id = event.tile_id
             tile = ALL_TILES_136[tile_id]
+
+            # Verify discard is legal
+            available = last_draw_available.get(player)
+            if available:
+                if tile not in available.can_discard:
+                    raise ReplayVerificationError(
+                        f"[{step_desc}] Illegal discard: {tile.name} not in can_discard"
+                    )
+            else:
+                # After call (no draw), must discard from hand
+                if tile not in rs.players[player].hand.closed_tiles:
+                    raise ReplayVerificationError(
+                        f"[{step_desc}] Illegal discard: {tile.name} not in hand"
+                    )
+
+            # If riichi pending, discard must be a riichi candidate
+            # Compare by index34 since red/non-red variants are equivalent
+            if riichi_pending.get(player):
+                candidates = riichi_pending_candidates.get(player, [])
+                candidate_indices = set(t.index34 for t in candidates)
+                if tile.index34 not in candidate_indices:
+                    raise ReplayVerificationError(
+                        f"[{step_desc}] Illegal riichi discard: {tile.name}"
+                    )
 
             # Always process as normal discard.
             # Riichi flags are set later on REACH step=2 (after confirming
             # no one ronned the riichi discard).
             rs.process_discard(player, tile)
 
-            # Update temp furiten for other players
-            rs.update_temp_furiten(player, tile)
+            # Defer temp furiten update until we confirm no one rons this tile.
+            # In real gameplay, temp furiten is only set when a player PASSES
+            # on a ron opportunity, not when the discard is actually ronned.
+            pending_temp_furiten = (player, tile)
+            last_draw_available.pop(player, None)
 
         elif event.event_type == EventType.MELD:
+            last_was_agari = False
+            _verify_meld_available(rs, event, step_desc, last_draw_available)
             _process_meld_event(rs, event, step_desc)
+            # Any call/kan/kita cancels ippatsu for pending riichi
+            if riichi_pending:
+                for p in list(riichi_pending.keys()):
+                    riichi_pending_blocked[p] = True
             # After kan or kita, next draw is a rinshan draw
             if event.decoded_meld and event.decoded_meld.meld_type in (
                 TenhouMeldType.ANKAN, TenhouMeldType.DAIMINKAN,
-                TenhouMeldType.KAKAN, TenhouMeldType.KITA,
+                TenhouMeldType.KAKAN,
             ):
                 expect_rinshan = True
+            elif event.decoded_meld and event.decoded_meld.meld_type == TenhouMeldType.KITA:
+                expect_rinshan = True
+                rinshan_from_live = True
+            last_draw_available.pop(event.player, None)
 
         elif event.event_type == EventType.RIICHI_DECLARE:
+            last_was_agari = False
             # Just record intent; actual riichi finalized on step=2
             riichi_pending[event.player] = True
+            available = rs.get_draw_actions(event.player)
+            if not available.can_riichi:
+                raise ReplayVerificationError(
+                    f"[{step_desc}] Illegal riichi: can_riichi is False"
+                )
+            riichi_pending_candidates[event.player] = list(available.riichi_candidates)
+            # Record double-riichi eligibility at declaration time
+            no_calls = all(len(p.hand.melds) == 0 for p in rs.players)
+            if rs.is_sanma:
+                no_calls = no_calls and all(len(p.kita_tiles) == 0 for p in rs.players)
+            riichi_pending_double[event.player] = (
+                rs.first_draw[event.player] and no_calls
+            )
 
         elif event.event_type == EventType.RIICHI_SCORE:
+            last_was_agari = False
             # Riichi confirmed (no one ronned the discard).
             # Now apply riichi flags and score deduction.
             player = event.player
             riichi_pending.pop(player, None)
+            is_double = riichi_pending_double.pop(player, False)
+            ippatsu_blocked = riichi_pending_blocked.pop(player, False)
+            riichi_pending_candidates.pop(player, None)
             hand = rs.players[player].hand
 
-            # Check for double riichi
-            is_double = rs.first_draw[player] and all(
-                len(p.hand.melds) == 0 for p in rs.players
-            )
-
             hand.is_riichi = True
-            hand.is_ippatsu = True
+            hand.is_ippatsu = not ippatsu_blocked
             if is_double:
                 hand.is_double_riichi = True
 
@@ -174,9 +257,31 @@ def replay_round(rd: RoundData, round_index: int = 0):
             hand.riichi_discard_index = len(hand.discard_pool) - 1
 
         elif event.event_type == EventType.AGARI:
-            _verify_agari(rs, rd, event, step_desc)
+            if expect_rinshan:
+                # Chankan (robbed kan) can end the hand before rinshan draw
+                expect_rinshan = False
+            # Verify win legality
+            winner = event.agari_who
+            from_who = event.agari_from
+            is_tsumo = (winner == from_who)
+            win_tile = ALL_TILES_136[event.agari_machi]
+            if is_tsumo:
+                available = rs.get_draw_actions(winner)
+                if not available.can_tsumo:
+                    raise ReplayVerificationError(
+                        f"[{step_desc}] Illegal tsumo: can_tsumo is False"
+                    )
+            else:
+                available = rs.get_response_actions(winner, win_tile, from_who)
+                if not available.can_ron:
+                    raise ReplayVerificationError(
+                        f"[{step_desc}] Illegal ron: can_ron is False"
+                    )
+            _verify_agari(rs, rd, event, step_desc, is_secondary_ron=last_was_agari)
+            last_was_agari = True
 
         elif event.event_type == EventType.RYUUKYOKU:
+            last_was_agari = False
             _verify_ryuukyoku(rs, rd, event, step_desc)
 
 
@@ -197,6 +302,64 @@ def _process_meld_event(rs: RoundState, event: Event, step_desc: str):
         _process_kakan(rs, player, dm, step_desc)
     elif dm.meld_type == TenhouMeldType.KITA:
         _process_kita(rs, player, dm, step_desc)
+
+
+def _verify_meld_available(rs: RoundState, event: Event, step_desc: str,
+                           last_draw_available):
+    """Verify meld action is available in engine-generated actions."""
+    dm = event.decoded_meld
+    if dm is None:
+        return
+    player = event.player
+
+    def _tiles_match(tiles_136, meld_tiles):
+        a = sorted(t // 4 for t in tiles_136)
+        b = sorted(t.index34 for t in meld_tiles)
+        return a == b
+
+    if dm.meld_type in (TenhouMeldType.CHI, TenhouMeldType.PON,
+                        TenhouMeldType.DAIMINKAN):
+        if rs.last_discard is None or rs.last_discard_player < 0:
+            raise ReplayVerificationError(
+                f"[{step_desc}] Meld without discard context"
+            )
+        available = rs.get_response_actions(player, rs.last_discard,
+                                            rs.last_discard_player)
+        if dm.meld_type == TenhouMeldType.CHI:
+            if not any(_tiles_match(dm.tiles_136, m.tiles) for m in available.can_chi):
+                raise ReplayVerificationError(
+                    f"[{step_desc}] Illegal chi: meld not available"
+                )
+        elif dm.meld_type == TenhouMeldType.PON:
+            if not any(_tiles_match(dm.tiles_136, m.tiles) for m in available.can_pon):
+                raise ReplayVerificationError(
+                    f"[{step_desc}] Illegal pon: meld not available"
+                )
+        elif dm.meld_type == TenhouMeldType.DAIMINKAN:
+            if not any(_tiles_match(dm.tiles_136, m.tiles) for m in available.can_daiminkan):
+                raise ReplayVerificationError(
+                    f"[{step_desc}] Illegal daiminkan: meld not available"
+                )
+        return
+
+    available = last_draw_available.get(player) or rs.get_draw_actions(player)
+
+    if dm.meld_type == TenhouMeldType.ANKAN:
+        if not any(_tiles_match(dm.tiles_136, tiles) for tiles in available.can_ankan):
+            raise ReplayVerificationError(
+                f"[{step_desc}] Illegal ankan: meld not available"
+            )
+    elif dm.meld_type == TenhouMeldType.KAKAN:
+        tile_34 = dm.tiles_136[0] // 4
+        if not any(t.index34 == tile_34 for t in available.can_shouminkan):
+            raise ReplayVerificationError(
+                f"[{step_desc}] Illegal kakan: meld not available"
+            )
+    elif dm.meld_type == TenhouMeldType.KITA:
+        if not available.can_kita:
+            raise ReplayVerificationError(
+                f"[{step_desc}] Illegal kita: can_kita is False"
+            )
 
 
 def _resolve_from_who(player: int, relative: int, num_players: int = 4) -> int:
@@ -404,13 +567,22 @@ def _process_kita(rs: RoundState, player: int, dm, step_desc: str):
     hand.draw_tile = None
     rs.players[player].kita_tiles.append(found)
 
+    # Cancel all ippatsu (kita is a call in sanma)
+    for p in rs.players:
+        p.hand.is_ippatsu = False
 
-def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str):
+
+def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str,
+                  is_secondary_ron: bool = False):
     """Verify AGARI (win) result."""
     winner = event.agari_who
     from_who = event.agari_from
     is_tsumo = (winner == from_who)
     win_tile = ALL_TILES_136[event.agari_machi]
+    agari_honba = event.agari_ba[0] if event.agari_ba else rs.honba
+    # In double/triple ron, Tenhou awards honba/riichi sticks only once.
+    if is_secondary_ron and not is_tsumo:
+        agari_honba = 0
 
     player = rs.players[winner]
     hand = player.hand
@@ -428,7 +600,7 @@ def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str):
             is_dealer=player.is_dealer,
             dora_tiles_34=rs.wall.get_dora_tiles_34(),
             uradora_tiles_34=rs.wall.get_uradora_tiles_34(),
-            honba=rs.honba,
+            honba=agari_honba,
             is_riichi=hand.is_riichi,
             is_double_riichi=hand.is_double_riichi,
             is_ippatsu=hand.is_ippatsu,
@@ -453,7 +625,7 @@ def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str):
             is_dealer=player.is_dealer,
             dora_tiles_34=rs.wall.get_dora_tiles_34(),
             uradora_tiles_34=rs.wall.get_uradora_tiles_34(),
-            honba=rs.honba,
+            honba=agari_honba,
             is_riichi=hand.is_riichi,
             is_double_riichi=hand.is_double_riichi,
             is_ippatsu=hand.is_ippatsu,
@@ -474,9 +646,9 @@ def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str):
     # Subtract honba bonus from engine result for comparison
     if is_tsumo:
         num_payers = rs.num_players - 1
-        honba_bonus = num_payers * 100 * rs.honba
+        honba_bonus = num_payers * 100 * agari_honba
     else:
-        honba_bonus = 300 * rs.honba
+        honba_bonus = (200 if rs.is_sanma else 300) * agari_honba
     engine_points_no_honba = result.total_points - honba_bonus
     verify_agari_score(expected_ten, result.fu, engine_points_no_honba, step_desc)
 
@@ -507,6 +679,8 @@ def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str):
         # Add riichi sticks to winner (use ba attribute from AGARI for accuracy,
         # especially in double-ron where sticks go to closest winner only)
         agari_riichi_sticks = event.agari_ba[1] if event.agari_ba else rs.riichi_sticks
+        if is_secondary_ron and not is_tsumo:
+            agari_riichi_sticks = 0
         engine_changes[winner] += agari_riichi_sticks * 1000
 
         verify_score_changes(event.agari_sc, engine_changes,

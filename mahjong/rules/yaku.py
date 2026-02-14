@@ -302,6 +302,7 @@ def check_chanta(ctx: HandContext) -> Optional[YakuResult]:
 
     has_honor = False
     has_number = False
+    has_shuntsu = False
 
     for m_type, m_idx in all_m:
         if m_type == 'koutsu':
@@ -312,6 +313,7 @@ def check_chanta(ctx: HandContext) -> Optional[YakuResult]:
             else:
                 return None
         elif m_type == 'shuntsu':
+            has_shuntsu = True
             if m_idx % 9 == 0 or m_idx % 9 == 6:
                 has_number = True
             else:
@@ -332,6 +334,9 @@ def check_chanta(ctx: HandContext) -> Optional[YakuResult]:
     # Also need at least one number tile group (otherwise it's honroutou)
     if not has_number:
         return None
+    # Require at least one shuntsu for chanta
+    if not has_shuntsu:
+        return None
 
     han = 1 if not ctx.is_menzen else 2
     return ("混全帯幺九", han)
@@ -345,16 +350,20 @@ def check_junchan(ctx: HandContext) -> Optional[YakuResult]:
     if len(all_m) == 0:
         return None
 
+    has_shuntsu = False
     for m_type, m_idx in all_m:
         if m_type == 'koutsu':
             if m_idx >= 27 or m_idx not in YAOCHU_INDICES:
                 return None
         elif m_type == 'shuntsu':
+            has_shuntsu = True
             if m_idx % 9 != 0 and m_idx % 9 != 6:
                 return None
 
     head = ctx.head_34
     if head >= 27 or head not in YAOCHU_INDICES:
+        return None
+    if not has_shuntsu:
         return None
 
     han = 2 if not ctx.is_menzen else 3
@@ -427,9 +436,14 @@ def check_sanankou(ctx: HandContext) -> Optional[YakuResult]:
 
     # Special case: if ron on a shanpon wait, one of the koutsu is "open"
     if not ctx.is_tsumo:
+        win_in_shuntsu = any(
+            m_type == 'shuntsu' and ctx.win_tile_34 in (m_idx, m_idx + 1, m_idx + 2)
+            for m_type, m_idx in ctx.mentsu
+        )
         # Check if win tile forms one of the closed koutsu
         for m_type, m_idx in ctx.mentsu:
-            if m_type == 'koutsu' and m_idx == ctx.win_tile_34:
+            if (m_type == 'koutsu' and m_idx == ctx.win_tile_34
+                    and not win_in_shuntsu):
                 closed_koutsu -= 1
                 break
 

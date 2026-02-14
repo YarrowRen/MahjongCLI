@@ -43,11 +43,17 @@ def calculate_fu(
 
     # Mentsu fu (from closed mentsu)
     # For ron, a koutsu completed by the winning tile is treated as open (明刻)
+    # only if the winning tile is not used in any shuntsu in this decomposition.
+    win_in_shuntsu = any(
+        m_type == 'shuntsu' and win_tile_34 in (m_idx, m_idx + 1, m_idx + 2)
+        for m_type, m_idx in mentsu_list
+    )
     win_koutsu_found = False
     for m_type, m_idx in mentsu_list:
         if m_type == 'koutsu':
             is_yaochu = m_idx in YAOCHU_INDICES
-            if not is_tsumo and not win_koutsu_found and m_idx == win_tile_34:
+            if (not is_tsumo and not win_koutsu_found and m_idx == win_tile_34
+                    and not win_in_shuntsu):
                 # Ron completing this koutsu: treat as open
                 base = 4 if is_yaochu else 2
                 win_koutsu_found = True
