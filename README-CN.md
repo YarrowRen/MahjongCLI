@@ -4,6 +4,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
+[![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
 
 [English README](https://github.com/YarrowRen/MahjongCLI/blob/master/README.md)
 
@@ -23,6 +24,7 @@
 - **贪心AI对手** - 基于向听数优化的AI，具备基本防守能力
 - **观战模式** - AI vs AI 自动对局
 - **多语言界面** - 中文/日文/英文，彩色牌面
+- **A+B 计时系统** - 基础时间 + 储备时间，实时逐秒倒计时，默认不限时
 
 ## 安装
 
@@ -48,7 +50,7 @@ riichi
 python main.py
 ```
 
-游戏默认中文启动，可在主菜单选项 6 切换语言。
+游戏默认中文启动，语言和时间控制均可在主菜单**设置**（选项 6）中修改。
 
 ### 运行测试
 
@@ -97,22 +99,24 @@ game/
 │   │   ├── round.py            # 单局流程控制
 │   │   ├── action.py           # 动作定义
 │   │   ├── event.py            # 事件总线
-│   │   └── game_logger.py      # 对局日志
+│   │   ├── game_logger.py      # 对局日志
+│   │   └── time_control.py     # A+B时间控制预设
 │   ├── player/                 # 玩家抽象与AI
 │   │   ├── base.py             # Player抽象基类 + GameView
-│   │   ├── human.py            # 人类玩家
+│   │   ├── human.py            # 人类玩家 + 计时逻辑
 │   │   └── greedy_ai.py        # 贪心AI
 │   └── ui/                     # 终端UI
 │       ├── renderer.py         # Rich渲染引擎
 │       ├── tile_display.py     # 牌面显示
 │       ├── board_layout.py     # 牌桌布局
 │       ├── input_handler.py    # 用户输入处理
+│       ├── timeout_input.py    # 超时输入 + 实时倒计时（ANSI）
 │       ├── i18n.py             # 国际化（中/日/英）
 │       └── locales/            # 翻译文件
 │           ├── zh.py           # 中文
 │           ├── ja.py           # 日文
 │           └── en.py           # 英文
-├── tests/                      # 单元测试（120个）
+├── tests/                      # 单元测试（126个）
 └── data/
     └── scoring_table.json      # 翻符→点数查询表
 ```

@@ -91,8 +91,16 @@ TRANSLATIONS = {
     "mode.3p": "3-Player Mahjong (Hanchan)",
     "mode.3p_tonpuu": "3-Player Mahjong (Tonpuusen)",
     "mode.spectator": "Spectator Mode (AI vs AI)",
-    "mode.language": "Switch Language / 切换语言",
+    "mode.settings": "Settings",
     "mode.quit": "Quit",
+
+    # === Settings ===
+    "settings.title": "Settings",
+    "settings.current_lang": "Language: {lang}",
+    "settings.current_time": "Time Control: {tc}",
+    "settings.change_lang": "Change Language",
+    "settings.change_time": "Time Control",
+    "settings.back": "Back",
 
     # === Draw Types ===
     "draw.exhaustive": "Exhaustive Draw",
@@ -204,4 +212,17 @@ TRANSLATIONS = {
     "lang.zh": "中文",
     "lang.ja": "日本語",
     "lang.en": "English",
+
+    # === Time Control ===
+    "tc.select":    "Select time control mode:",
+    "tc.unlimited": "Unlimited",
+    "tc.5_20":      "5+20s  (5s base / 20s bank)",
+    "tc.10_20":     "10+20s (10s base / 20s bank)",
+    "tc.15_30":     "15+30s (15s base / 30s bank)",
+    "tc.60_0":      "60+0s  (60s per action / no bank)",
+    "tc.hint":      "[Time] Base:{base}s | Bank:{bank}s",
+    "tc.hint_no_bank": "[Time] {base}s",
+    "tc.countdown_base": "  ⏱  Base: {base}s | Bank: {bank}s",
+    "tc.countdown_bank": "  ⏱  Bank: {bank}s",
+    "tc.timeout":   "Time out, executing default action",
 }

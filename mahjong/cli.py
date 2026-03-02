@@ -19,13 +19,14 @@ from mahjong.ui.board_layout import (
     render_round_end_hands
 )
 from mahjong.engine.game_logger import GameLogger
-from mahjong.ui.i18n import t, set_language
+from mahjong.engine.time_control import TIME_CONTROL_PRESETS, TimeControl
+from mahjong.ui.i18n import t, set_language, get_language
 
 console = Console()
 
 
-def change_language():
-    """Show language selection submenu."""
+def _change_language():
+    """Language selection sub-screen."""
     console.print(f"\n  {t('lang.select')}")
     console.print(f"    1. {t('lang.zh')}")
     console.print(f"    2. {t('lang.ja')}")
@@ -49,6 +50,63 @@ def change_language():
         console.print("  [red]Invalid / 无效 / 無効[/red]")
 
 
+def _choose_time_control(current: TimeControl) -> TimeControl:
+    """Time control selection sub-screen. Returns new selection."""
+    console.print(f"\n  {t('tc.select')}")
+    for i, tc in enumerate(TIME_CONTROL_PRESETS):
+        marker = " *" if tc is current else ""
+        console.print(f"    {i}. {t(tc.name)}{marker}")
+    console.print()
+
+    while True:
+        try:
+            idx = int(console.input(
+                f"  > {t('prompt.choose_mode', n=len(TIME_CONTROL_PRESETS) - 1)} "
+            ).strip())
+            if 0 <= idx < len(TIME_CONTROL_PRESETS):
+                return TIME_CONTROL_PRESETS[idx]
+        except (ValueError, EOFError):
+            pass
+        console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
+
+
+def show_settings(current_time_control: TimeControl) -> TimeControl:
+    """Show settings submenu. Returns (possibly updated) time control."""
+    while True:
+        lang_name = t(f"lang.{get_language()}")
+        tc_name = t(current_time_control.name)
+
+        console.print()
+        console.print(Panel(
+            f"[bold]{t('settings.title')}[/bold]\n"
+            f"[dim]{t('settings.current_lang', lang=lang_name)}[/dim]\n"
+            f"[dim]{t('settings.current_time', tc=tc_name)}[/dim]",
+            border_style="dim",
+            padding=(0, 4),
+        ))
+        console.print()
+        console.print(f"    1. {t('settings.change_lang')}")
+        console.print(f"    2. {t('settings.change_time')}")
+        console.print(f"    0. {t('settings.back')}")
+        console.print()
+
+        while True:
+            try:
+                choice = int(console.input(f"  > {t('prompt.choose_mode', n=2)} ").strip())
+                if 0 <= choice <= 2:
+                    break
+            except (ValueError, EOFError):
+                pass
+            console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
+
+        if choice == 0:
+            return current_time_control
+        elif choice == 1:
+            _change_language()
+        elif choice == 2:
+            current_time_control = _choose_time_control(current_time_control)
+
+
 def show_menu() -> int:
     """Show mode selection menu and return choice."""
     console.print()
@@ -65,7 +123,7 @@ def show_menu() -> int:
     console.print(f"    3. {t('mode.3p')}")
     console.print(f"    4. {t('mode.3p_tonpuu')}")
     console.print(f"    5. {t('mode.spectator')}")
-    console.print(f"    6. {t('mode.language')}")
+    console.print(f"    6. {t('mode.settings')}")
     console.print(f"    0. {t('mode.quit')}")
     console.print()
 
@@ -79,7 +137,7 @@ def show_menu() -> int:
         console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
 
 
-def create_game(choice: int):
+def create_game(choice: int, time_control: TimeControl = None):
     """Create game based on menu choice."""
     is_sanma = choice in (3, 4)
     is_tonpuu = choice in (2, 4)
@@ -90,6 +148,7 @@ def create_game(choice: int):
         num_players=num_players,
         is_sanma=is_sanma,
         is_tonpuu=is_tonpuu,
+        time_control=time_control,
     )
 
     event_bus = EventBus()
@@ -107,7 +166,7 @@ def create_game(choice: int):
     else:
         player_name = t('label.you')
         player_names = [player_name] + ai_names[:num_players - 1]
-        human = HumanPlayer(player_name, console, renderer)
+        human = HumanPlayer(player_name, console, renderer, time_control)
         players = {player_name: human}
         for name in ai_names[:num_players - 1]:
             players[name] = GreedyAI(name)
@@ -115,9 +174,12 @@ def create_game(choice: int):
     return config, event_bus, renderer, player_names, players, is_spectator
 
 
-def play_game(choice: int):
+def play_game(choice: int, time_control: TimeControl):
     """Play a complete game."""
-    config, event_bus, renderer, player_names, players, is_spectator = create_game(choice)
+    is_spectator = choice == 5
+    config, event_bus, renderer, player_names, players, is_spectator = create_game(
+        choice, time_control if not is_spectator else None
+    )
 
     game = GameState(config, player_names, event_bus)
 
@@ -232,15 +294,16 @@ def main():
     """Main entry point."""
     try:
         set_language("zh")
+        time_control = TIME_CONTROL_PRESETS[0]  # default: unlimited
         while True:
             choice = show_menu()
             if choice == 0:
                 console.print(f"\n  {t('msg.goodbye')}\n")
                 break
             elif choice == 6:
-                change_language()
+                time_control = show_settings(time_control)
                 continue
-            play_game(choice)
+            play_game(choice, time_control)
             console.print()
     except KeyboardInterrupt:
         console.print(f"\n\n  [dim]{t('msg.game_exit')}[/dim]\n")

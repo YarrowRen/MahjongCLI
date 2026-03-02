@@ -91,8 +91,16 @@ TRANSLATIONS = {
     "mode.3p": "三人麻雀 (半荘)",
     "mode.3p_tonpuu": "三人麻雀 (東風戦)",
     "mode.spectator": "観戦モード (AI vs AI)",
-    "mode.language": "言語切替 / Language",
+    "mode.settings": "設定",
     "mode.quit": "終了",
+
+    # === Settings ===
+    "settings.title": "設定",
+    "settings.current_lang": "言語: {lang}",
+    "settings.current_time": "持ち時間: {tc}",
+    "settings.change_lang": "言語切替",
+    "settings.change_time": "持ち時間設定",
+    "settings.back": "戻る",
 
     # === Draw Types ===
     "draw.exhaustive": "荒牌流局",
@@ -204,4 +212,17 @@ TRANSLATIONS = {
     "lang.zh": "中文",
     "lang.ja": "日本語",
     "lang.en": "English",
+
+    # === Time Control ===
+    "tc.select":    "持ち時間モードを選択してください:",
+    "tc.unlimited": "無制限",
+    "tc.5_20":      "5+20秒  (基本5秒 / 貯金20秒)",
+    "tc.10_20":     "10+20秒 (基本10秒 / 貯金20秒)",
+    "tc.15_30":     "15+30秒 (基本15秒 / 貯金30秒)",
+    "tc.60_0":      "60+0秒  (毎回60秒 / 貯金なし)",
+    "tc.hint":      "[時間] 基本:{base}秒 | 貯金:{bank}秒",
+    "tc.hint_no_bank": "[時間] {base}秒",
+    "tc.countdown_base": "  ⏱  基本: {base}秒 | 貯金: {bank}秒",
+    "tc.countdown_bank": "  ⏱  貯金: {bank}秒",
+    "tc.timeout":   "時間切れ、デフォルト操作を実行",
 }

@@ -91,8 +91,16 @@ TRANSLATIONS = {
     "mode.3p": "三人麻将 (半荘)",
     "mode.3p_tonpuu": "三人麻将 (東風戦)",
     "mode.spectator": "观战模式 (AI vs AI)",
-    "mode.language": "切换语言 / Language",
+    "mode.settings": "设置",
     "mode.quit": "退出",
+
+    # === Settings ===
+    "settings.title": "设置",
+    "settings.current_lang": "语言: {lang}",
+    "settings.current_time": "时间控制: {tc}",
+    "settings.change_lang": "切换语言",
+    "settings.change_time": "时间控制",
+    "settings.back": "返回",
 
     # === Draw Types ===
     "draw.exhaustive": "荒牌流局",
@@ -204,4 +212,17 @@ TRANSLATIONS = {
     "lang.zh": "中文",
     "lang.ja": "日本語",
     "lang.en": "English",
+
+    # === Time Control ===
+    "tc.select":    "请选择时间控制模式:",
+    "tc.unlimited": "不限时",
+    "tc.5_20":      "5+20秒  (基础5秒 / 储备20秒)",
+    "tc.10_20":     "10+20秒 (基础10秒 / 储备20秒)",
+    "tc.15_30":     "15+30秒 (基础15秒 / 储备30秒)",
+    "tc.60_0":      "60+0秒  (每次60秒 / 无储备)",
+    "tc.hint":      "[时间] 基础:{base}秒 | 储备:{bank}秒",
+    "tc.hint_no_bank": "[时间] {base}秒",
+    "tc.countdown_base": "  ⏱  基础: {base}s | 储备: {bank}s",
+    "tc.countdown_bank": "  ⏱  储备: {bank}s",
+    "tc.timeout":   "操作超时，自动执行默认动作",
 }

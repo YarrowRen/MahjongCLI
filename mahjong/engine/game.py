@@ -6,6 +6,7 @@ from mahjong.core.wall import Wall
 from mahjong.core.player_state import PlayerState, Wind
 from mahjong.engine.event import EventBus, EventType, GameEvent
 from mahjong.engine.round import RoundState, RoundResult, run_round
+from mahjong.engine.time_control import TimeControl, TIME_CONTROL_PRESETS
 
 
 class GameConfig:
@@ -18,12 +19,14 @@ class GameConfig:
         is_tonpuu: bool = False,  # East-only (東風戦) vs half game (半荘)
         starting_score: int = 25000,
         target_score: int = 30000,
+        time_control: TimeControl = None,
     ):
         self.num_players = num_players
         self.is_sanma = is_sanma
         self.is_tonpuu = is_tonpuu
         self.starting_score = starting_score
         self.target_score = target_score
+        self.time_control = time_control or TIME_CONTROL_PRESETS[0]
 
         if is_sanma:
             self.num_players = 3

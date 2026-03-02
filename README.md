@@ -4,6 +4,7 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 
 [![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
+[![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
 
 [中文文档](https://github.com/YarrowRen/MahjongCLI/blob/master/README-CN.md)
 
@@ -24,6 +25,7 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 - **Spectator Mode** - AI vs AI auto-play
 - **Multilingual** - Chinese, Japanese, and English interface
 - **Colored Tiles** - Rich terminal rendering with colored tile display
+- **A+B Time Control** - Base + bank seconds per action, real-time countdown with per-second refresh (unlimited by default)
 
 ## Install
 
@@ -49,7 +51,7 @@ Or run from source:
 python main.py
 ```
 
-The game starts in Chinese by default. You can switch language from the main menu (option 6).
+The game starts in Chinese by default. Language and time control can be changed in **Settings** (main menu option 6).
 
 ### Run Tests
 
@@ -98,22 +100,24 @@ game/
 │   │   ├── round.py            # Single round flow control
 │   │   ├── action.py           # Action definitions
 │   │   ├── event.py            # Event bus
-│   │   └── game_logger.py      # Game logging
+│   │   ├── game_logger.py      # Game logging
+│   │   └── time_control.py     # A+B time control presets
 │   ├── player/                 # Player abstraction & AI
 │   │   ├── base.py             # Player base class + GameView
-│   │   ├── human.py            # Human player
+│   │   ├── human.py            # Human player + timing logic
 │   │   └── greedy_ai.py        # Greedy AI
 │   └── ui/                     # Terminal UI
 │       ├── renderer.py         # Rich rendering engine
 │       ├── tile_display.py     # Tile display formatting
 │       ├── board_layout.py     # Board layout rendering
 │       ├── input_handler.py    # User input handling
+│       ├── timeout_input.py    # Timed input + live countdown (ANSI)
 │       ├── i18n.py             # Internationalization (zh/ja/en)
 │       └── locales/            # Translation files
 │           ├── zh.py           # Chinese translations
 │           ├── ja.py           # Japanese translations
 │           └── en.py           # English translations
-├── tests/                      # Unit tests (120 cases)
+├── tests/                      # Unit tests (126 cases)
 └── data/
     └── scoring_table.json      # Han/fu → points lookup table
 ```

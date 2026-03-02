@@ -9,9 +9,12 @@ from mahjong.engine.action import Action, ActionType, AvailableActions
 from mahjong.core.meld import Meld
 from mahjong.ui.tile_display import tile_to_display_str
 from mahjong.ui.i18n import t
+from mahjong.ui.timeout_input import timed_input
 
 
-def get_player_input(console: Console, game_view, available: AvailableActions) -> Action:
+def get_player_input(console: Console, game_view, available: AvailableActions,
+                     deadline: Optional[float] = None,
+                     base_end: Optional[float] = None) -> Action:
     """Get action from human player via terminal input."""
     player_idx = available.player
     allowed_set = set(tile.id for tile in available.can_discard)
@@ -21,12 +24,14 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
         if not available.can_tsumo and not available.can_ankan and not available.can_kita:
             tile = available.can_discard[0]
             console.print(f"  {t('msg.riichi_tsumogiri')} [bold]{tile_to_display_str(tile)}[/bold]")
-            console.input(f"  > {t('prompt.press_enter')}")
+            result = timed_input(f"  > {t('prompt.press_enter')}", deadline, base_end=base_end)
+            if result is None:
+                console.print(f"  [yellow]{t('tc.timeout')}[/yellow]")
             return Action(ActionType.DISCARD, player_idx, tile=tile)
 
     # If only discard is available (and nothing else special)
     if not available.has_action and available.can_discard:
-        return _get_discard_input(console, game_view, available, allowed_set)
+        return _get_discard_input(console, game_view, available, allowed_set, deadline, base_end)
 
     # Show action options
     while True:
@@ -59,7 +64,13 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
         prompt_parts.append(t('prompt.action_skip'))
 
         prompt = "  > " + " | ".join(prompt_parts) + ": "
-        choice = console.input(prompt).strip().lower()
+        choice = timed_input(prompt, deadline, base_end=base_end)
+
+        if choice is None:
+            console.print(f"  [yellow]{t('tc.timeout')}[/yellow]")
+            return _default_action(available, player_idx)
+
+        choice = choice.strip().lower()
 
         if choice == 't' and available.can_tsumo:
             return Action(ActionType.TSUMO, player_idx)
@@ -73,8 +84,13 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
             for i, tile in enumerate(available.riichi_candidates):
                 console.print(f"    {i+1}. {tile_to_display_str(tile)}")
             while True:
+                result = timed_input(f"  > {t('prompt.number')} ", deadline, base_end=base_end)
+                if result is None:
+                    console.print(f"  [yellow]{t('tc.timeout')}[/yellow]")
+                    return Action(ActionType.RIICHI, player_idx,
+                                  riichi_discard=available.riichi_candidates[0])
                 try:
-                    idx = int(console.input(f"  > {t('prompt.number')} ").strip()) - 1
+                    idx = int(result.strip()) - 1
                     if 0 <= idx < len(available.riichi_candidates):
                         return Action(ActionType.RIICHI, player_idx,
                                       riichi_discard=available.riichi_candidates[idx])
@@ -95,8 +111,13 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
                 tiles_str = " ".join(tile_to_display_str(tile) for tile in meld.tiles)
                 console.print(f"    {i+1}. {tiles_str}")
             while True:
+                result = timed_input(f"  > {t('prompt.number')} ", deadline, base_end=base_end)
+                if result is None:
+                    console.print(f"  [yellow]{t('tc.timeout')}[/yellow]")
+                    return Action(ActionType.CHI, player_idx,
+                                  meld=available.can_chi[0])
                 try:
-                    idx = int(console.input(f"  > {t('prompt.number')} ").strip()) - 1
+                    idx = int(result.strip()) - 1
                     if 0 <= idx < len(available.can_chi):
                         return Action(ActionType.CHI, player_idx,
                                       meld=available.can_chi[idx])
@@ -123,7 +144,7 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
 
         if choice == 's':
             if available.can_discard:
-                return _get_discard_input(console, game_view, available, allowed_set)
+                return _get_discard_input(console, game_view, available, allowed_set, deadline, base_end)
             return Action(ActionType.SKIP, player_idx)
 
         # Try as number for discard
@@ -144,17 +165,30 @@ def get_player_input(console: Console, game_view, available: AvailableActions) -
         console.print(f"  [red]{t('prompt.invalid_retry')}[/red]")
 
 
+def _default_action(available: AvailableActions, player_idx: int) -> Action:
+    """Return the safest default action on timeout."""
+    if available.can_discard:
+        # Discard the last tile in can_discard (draw tile position)
+        return Action(ActionType.DISCARD, player_idx, tile=available.can_discard[-1])
+    return Action(ActionType.SKIP, player_idx)
+
+
 def _get_discard_input(console: Console, game_view, available: AvailableActions,
-                       allowed_set: set) -> Action:
+                       allowed_set: set, deadline: Optional[float] = None,
+                       base_end: Optional[float] = None) -> Action:
     """Get discard tile selection, validating against allowed tiles."""
     tiles = _get_sorted_display_tiles(game_view)
     n = len(tiles)
 
     prompt = f"  > {t('prompt.choose_discard', n=n)} "
     while True:
-        choice = console.input(prompt).strip()
+        choice = timed_input(prompt, deadline, base_end=base_end)
+        if choice is None:
+            console.print(f"  [yellow]{t('tc.timeout')}[/yellow]")
+            # Default: discard last tile (draw tile)
+            return Action(ActionType.DISCARD, available.player, tile=available.can_discard[-1])
         try:
-            idx = int(choice) - 1
+            idx = int(choice.strip()) - 1
             if 0 <= idx < n:
                 tile = tiles[idx]
                 if tile.id in allowed_set:
