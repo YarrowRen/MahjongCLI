@@ -98,9 +98,18 @@ TRANSLATIONS = {
     "settings.title": "設定",
     "settings.current_lang": "言語: {lang}",
     "settings.current_time": "持ち時間: {tc}",
+    "settings.current_ai_delay": "AI速度: {delay}",
     "settings.change_lang": "言語切替",
     "settings.change_time": "持ち時間設定",
+    "settings.change_ai_delay": "AI操作速度",
     "settings.back": "戻る",
+
+    # === AI Delay ===
+    "ai_delay.select":  "AIの操作速度を選択:",
+    "ai_delay.1s":      "1秒",
+    "ai_delay.3s":      "3秒",
+    "ai_delay.5s":      "5秒",
+    "ai_delay.random":  "ランダム (1〜5秒)",
 
     # === Draw Types ===
     "draw.exhaustive": "荒牌流局",

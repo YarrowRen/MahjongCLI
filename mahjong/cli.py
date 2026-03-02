@@ -4,6 +4,8 @@
 This is the package entry point, invoked by the `riichi` console command.
 """
 
+import time
+
 from rich.console import Console
 from rich.panel import Panel
 
@@ -20,6 +22,7 @@ from mahjong.ui.board_layout import (
 )
 from mahjong.engine.game_logger import GameLogger
 from mahjong.engine.time_control import TIME_CONTROL_PRESETS, TimeControl
+from mahjong.engine.ai_delay import AI_DELAY_PRESETS, AIDelay
 from mahjong.ui.i18n import t, set_language, get_language
 
 console = Console()
@@ -70,41 +73,67 @@ def _choose_time_control(current: TimeControl) -> TimeControl:
         console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
 
 
-def show_settings(current_time_control: TimeControl) -> TimeControl:
-    """Show settings submenu. Returns (possibly updated) time control."""
+def _choose_ai_delay(current: AIDelay) -> AIDelay:
+    """AI delay selection sub-screen. Returns new selection."""
+    console.print(f"\n  {t('ai_delay.select')}")
+    for i, d in enumerate(AI_DELAY_PRESETS):
+        marker = " *" if d is current else ""
+        console.print(f"    {i}. {t(d.name)}{marker}")
+    console.print()
+
+    while True:
+        try:
+            idx = int(console.input(
+                f"  > {t('prompt.choose_mode', n=len(AI_DELAY_PRESETS) - 1)} "
+            ).strip())
+            if 0 <= idx < len(AI_DELAY_PRESETS):
+                return AI_DELAY_PRESETS[idx]
+        except (ValueError, EOFError):
+            pass
+        console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
+
+
+def show_settings(current_time_control: TimeControl,
+                  current_ai_delay: AIDelay) -> tuple[TimeControl, AIDelay]:
+    """Show settings submenu. Returns (possibly updated) time control and ai delay."""
     while True:
         lang_name = t(f"lang.{get_language()}")
         tc_name = t(current_time_control.name)
+        delay_name = t(current_ai_delay.name)
 
         console.print()
         console.print(Panel(
             f"[bold]{t('settings.title')}[/bold]\n"
             f"[dim]{t('settings.current_lang', lang=lang_name)}[/dim]\n"
-            f"[dim]{t('settings.current_time', tc=tc_name)}[/dim]",
+            f"[dim]{t('settings.current_time', tc=tc_name)}[/dim]\n"
+            f"[dim]{t('settings.current_ai_delay', delay=delay_name)}[/dim]",
             border_style="dim",
             padding=(0, 4),
         ))
         console.print()
         console.print(f"    1. {t('settings.change_lang')}")
         console.print(f"    2. {t('settings.change_time')}")
+        console.print(f"    3. {t('settings.change_ai_delay')}")
         console.print(f"    0. {t('settings.back')}")
         console.print()
 
         while True:
             try:
-                choice = int(console.input(f"  > {t('prompt.choose_mode', n=2)} ").strip())
-                if 0 <= choice <= 2:
+                choice = int(console.input(f"  > {t('prompt.choose_mode', n=3)} ").strip())
+                if 0 <= choice <= 3:
                     break
             except (ValueError, EOFError):
                 pass
             console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
 
         if choice == 0:
-            return current_time_control
+            return current_time_control, current_ai_delay
         elif choice == 1:
             _change_language()
         elif choice == 2:
             current_time_control = _choose_time_control(current_time_control)
+        elif choice == 3:
+            current_ai_delay = _choose_ai_delay(current_ai_delay)
 
 
 def show_menu() -> int:
@@ -174,7 +203,7 @@ def create_game(choice: int, time_control: TimeControl = None):
     return config, event_bus, renderer, player_names, players, is_spectator
 
 
-def play_game(choice: int, time_control: TimeControl):
+def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
     """Play a complete game."""
     is_spectator = choice == 5
     config, event_bus, renderer, player_names, players, is_spectator = create_game(
@@ -215,6 +244,22 @@ def play_game(choice: int, time_control: TimeControl):
             """Route action requests to appropriate player."""
             p_name = player_names[player_idx]
             player = players[p_name]
+
+            if isinstance(player, GreedyAI):
+                # Render current board state (from seat-0 perspective) before AI thinks,
+                # so the human sees each board update immediately (e.g. their own discard,
+                # previous AI discard) rather than waiting until their next turn.
+                gv_render = build_game_view(
+                    0, game.players,
+                    game.round_wind, game.honba, game.riichi_sticks,
+                    round_state.wall.remaining,
+                    round_state.wall.dora_indicators,
+                    game.round_label,
+                    round_state.last_discard,
+                    round_state.last_discard_player,
+                )
+                renderer.render_game_view(gv_render)
+                time.sleep(ai_delay.get_delay())
 
             gv = build_game_view(
                 player_idx, game.players,
@@ -295,15 +340,16 @@ def main():
     try:
         set_language("zh")
         time_control = TIME_CONTROL_PRESETS[0]  # default: unlimited
+        ai_delay = AI_DELAY_PRESETS[0]          # default: 1s
         while True:
             choice = show_menu()
             if choice == 0:
                 console.print(f"\n  {t('msg.goodbye')}\n")
                 break
             elif choice == 6:
-                time_control = show_settings(time_control)
+                time_control, ai_delay = show_settings(time_control, ai_delay)
                 continue
-            play_game(choice, time_control)
+            play_game(choice, time_control, ai_delay)
             console.print()
     except KeyboardInterrupt:
         console.print(f"\n\n  [dim]{t('msg.game_exit')}[/dim]\n")

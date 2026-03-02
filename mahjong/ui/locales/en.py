@@ -98,9 +98,18 @@ TRANSLATIONS = {
     "settings.title": "Settings",
     "settings.current_lang": "Language: {lang}",
     "settings.current_time": "Time Control: {tc}",
+    "settings.current_ai_delay": "AI Speed: {delay}",
     "settings.change_lang": "Change Language",
     "settings.change_time": "Time Control",
+    "settings.change_ai_delay": "AI Action Speed",
     "settings.back": "Back",
+
+    # === AI Delay ===
+    "ai_delay.select":  "Select AI action speed:",
+    "ai_delay.1s":      "1s",
+    "ai_delay.3s":      "3s",
+    "ai_delay.5s":      "5s",
+    "ai_delay.random":  "Random (1-5s)",
 
     # === Draw Types ===
     "draw.exhaustive": "Exhaustive Draw",

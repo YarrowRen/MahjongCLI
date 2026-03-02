@@ -98,9 +98,18 @@ TRANSLATIONS = {
     "settings.title": "设置",
     "settings.current_lang": "语言: {lang}",
     "settings.current_time": "时间控制: {tc}",
+    "settings.current_ai_delay": "AI速度: {delay}",
     "settings.change_lang": "切换语言",
     "settings.change_time": "时间控制",
+    "settings.change_ai_delay": "AI操作速度",
     "settings.back": "返回",
+
+    # === AI Delay ===
+    "ai_delay.select":  "请选择AI操作速度:",
+    "ai_delay.1s":      "1秒",
+    "ai_delay.3s":      "3秒",
+    "ai_delay.5s":      "5秒",
+    "ai_delay.random":  "随机 (1-5秒)",
 
     # === Draw Types ===
     "draw.exhaustive": "荒牌流局",
