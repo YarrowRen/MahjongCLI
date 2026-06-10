@@ -108,7 +108,9 @@ class GameState:
         # Handle riichi sticks
         if result.riichi_sticks_winner is not None:
             self.riichi_sticks = 0
-        # Unreturned riichi sticks stay on the table
+        else:
+            # Draw: sticks (including ones declared this round) stay on the table
+            self.riichi_sticks = result.riichi_sticks_on_table
 
         # Check for player bust (飛び)
         for p in self.players:
@@ -169,6 +171,12 @@ class GameState:
 
     def _finalize(self):
         """Calculate final scores and rankings."""
+        # Leftover riichi sticks go to the top player (seat order breaks ties)
+        if self.riichi_sticks > 0:
+            top = max(self.players, key=lambda p: p.score)
+            top.score += self.riichi_sticks * 1000
+            self.riichi_sticks = 0
+
         self.final_scores = [p.score for p in self.players]
 
         self.event_bus.emit(GameEvent(EventType.GAME_END, {

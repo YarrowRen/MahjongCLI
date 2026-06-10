@@ -28,6 +28,8 @@ class RoundResult:
         self.tenpai_players: List[int] = []  # For exhaustive draw
         self.dealer_continues: bool = False
         self.riichi_sticks_winner: Optional[int] = None
+        # Sticks left on the table after a draw (carried to the next round)
+        self.riichi_sticks_on_table: int = 0
 
 
 class RoundState:
@@ -701,6 +703,7 @@ class RoundState:
             0  # Default to player 0 if no dealer flag is set
         )
         round_result.dealer_continues = dealer_idx in tenpai_players
+        round_result.riichi_sticks_on_table = self.riichi_sticks
 
         self.result = round_result
         self.is_finished = True
@@ -715,6 +718,7 @@ class RoundState:
         round_result.is_draw = True
         round_result.draw_type = draw_type
         round_result.dealer_continues = True  # Dealer always continues on abortive
+        round_result.riichi_sticks_on_table = self.riichi_sticks
 
         self.result = round_result
         self.is_finished = True

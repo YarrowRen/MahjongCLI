@@ -16,11 +16,17 @@ from mahjong.player.greedy_ai import GreedyAI
 
 
 def _play_full_game(seed: int, config: GameConfig) -> GameState:
-    """Run a complete AI-vs-AI game and return the finished GameState."""
+    """Run a complete AI-vs-AI game and return the finished GameState.
+
+    Asserts the point-conservation invariant after every round:
+    player scores plus riichi sticks on the table must always equal
+    the total starting points.
+    """
     random.seed(seed)
     names = [f"AI{i}" for i in range(config.num_players)]
     game = GameState(config, names, EventBus())
     ais = [GreedyAI(n) for n in names]
+    total_points = config.num_players * config.starting_score
 
     rounds_played = 0
     while not game.is_finished:
@@ -39,9 +45,18 @@ def _play_full_game(seed: int, config: GameConfig) -> GameState:
         assert result is not None, "round ended without a result"
         game.advance_round(result)
 
+        current = sum(p.score for p in game.players) + game.riichi_sticks * 1000
+        assert current == total_points, (
+            f"point conservation violated after round {rounds_played}: "
+            f"{current} != {total_points}"
+        )
+
         rounds_played += 1
         assert rounds_played < 100, "game did not terminate"
 
+    # At game end all leftover sticks must have been distributed
+    assert game.riichi_sticks == 0
+    assert sum(p.score for p in game.players) == total_points
     return game
 
 
