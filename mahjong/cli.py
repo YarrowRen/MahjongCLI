@@ -184,7 +184,7 @@ def create_game(choice: int, time_control: TimeControl = None,
     event_bus = EventBus()
     renderer = Renderer(console, event_bus, human_seat=0)
 
-    # Create players
+    # Create players (indexed by seat; seat 0 is the human unless spectating)
     ai_names = [t('ai.name_a'), t('ai.name_b'), t('ai.name_c')]
     if is_spectator:
         player_names = [
@@ -192,14 +192,12 @@ def create_game(choice: int, time_control: TimeControl = None,
         ]
         if not is_sanma:
             player_names.append(t('ai.spectator.north'))
-        players = {name: GreedyAI(name) for name in player_names}
+        players = [GreedyAI(name) for name in player_names]
     else:
         player_name = t('label.you')
         player_names = [player_name] + ai_names[:num_players - 1]
         human = HumanPlayer(player_name, console, renderer, time_control)
-        players = {player_name: human}
-        for name in ai_names[:num_players - 1]:
-            players[name] = GreedyAI(name)
+        players = [human] + [GreedyAI(n) for n in ai_names[:num_players - 1]]
 
     return config, event_bus, renderer, player_names, players
 
@@ -244,8 +242,7 @@ def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
 
         def get_action(player_idx, available):
             """Route action requests to appropriate player."""
-            p_name = player_names[player_idx]
-            player = players[p_name]
+            player = players[player_idx]
 
             if isinstance(player, GreedyAI):
                 # Render current board state (from seat-0 perspective) before AI thinks,
