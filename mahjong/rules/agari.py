@@ -3,6 +3,7 @@
 Returns all possible decompositions for a winning hand.
 """
 
+from functools import lru_cache
 from typing import List, Tuple, Optional
 
 from mahjong.core.tile import YAOCHU_INDICES
@@ -16,6 +17,12 @@ Decomposition = Tuple[int, List[Mentsu]]
 
 def is_agari(tiles_34: List[int]) -> bool:
     """Check if the 34-array represents a winning hand (any form)."""
+    return _is_agari_cached(tuple(tiles_34))
+
+
+@lru_cache(maxsize=65536)
+def _is_agari_cached(key: tuple) -> bool:
+    tiles_34 = list(key)
     return (is_standard_agari(tiles_34) or
             is_chiitoi_agari(tiles_34) or
             is_kokushi_agari(tiles_34))
@@ -190,9 +197,15 @@ def get_waiting_tiles(tiles_34: List[int]) -> List[int]:
 
     The hand should have 13 tiles (tenpai check) or appropriate for melds.
     """
+    return list(_waiting_tiles_cached(tuple(tiles_34)))
+
+
+@lru_cache(maxsize=16384)
+def _waiting_tiles_cached(key: tuple) -> tuple:
+    tiles_34 = list(key)
     total = sum(tiles_34)
     if total % 3 != 1:
-        return []
+        return ()
 
     waits = []
     for i in range(34):
@@ -202,4 +215,4 @@ def get_waiting_tiles(tiles_34: List[int]) -> List[int]:
         test[i] += 1
         if is_agari(test):
             waits.append(i)
-    return waits
+    return tuple(waits)

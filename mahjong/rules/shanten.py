@@ -5,11 +5,18 @@ Shanten = minimum number of tiles needed to reach tenpai (waiting to win).
 0 means tenpai (one tile away).
 """
 
+from functools import lru_cache
 from typing import List
 
 
 def shanten(tiles_34: List[int]) -> int:
     """Calculate minimum shanten number across all hand forms."""
+    return _shanten_cached(tuple(tiles_34))
+
+
+@lru_cache(maxsize=65536)
+def _shanten_cached(key: tuple) -> int:
+    tiles_34 = list(key)
     return min(
         shanten_standard(tiles_34),
         shanten_chiitoi(tiles_34),
