@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Tuple, Set
 
-from mahjong.core.tile import Tile, tiles_to_34_array, ALL_TILES_136, YAOCHU_INDICES
+from mahjong.core.tile import Tile, YAOCHU_INDICES
 from mahjong.core.meld import Meld, MeldType
 from mahjong.core.hand import Hand
 from mahjong.core.wall import Wall
@@ -10,19 +10,21 @@ from mahjong.core.player_state import PlayerState, Wind
 from mahjong.engine.action import Action, ActionType, AvailableActions
 from mahjong.engine.event import EventBus, EventType, GameEvent
 from mahjong.rules.agari import is_agari, get_waiting_tiles
-from mahjong.rules.shanten import shanten
 from mahjong.rules.scoring import calculate_score, ScoreResult
-from mahjong.rules.furiten import is_discard_furiten, get_hand_waiting_tiles
+from mahjong.rules.furiten import (
+    is_discard_furiten, is_temporary_furiten, is_riichi_furiten,
+    get_hand_waiting_tiles,
+)
 
 
 class RoundResult:
     """Result of a completed round."""
 
-    def __init__(self):
+    def __init__(self, num_players: int = 4):
         self.winners: List[int] = []  # Seat indices of winners
         self.loser: Optional[int] = None  # Seat index of deal-in player
         self.score_results: List[Tuple[int, ScoreResult]] = []  # (seat, result) pairs
-        self.score_changes: List[int] = [0, 0, 0, 0]
+        self.score_changes: List[int] = [0] * num_players
         self.is_draw: bool = False
         self.draw_type: str = ""  # "exhaustive", "4kan", "4wind", "4riichi", "kyuushu"
         self.tenpai_players: List[int] = []  # For exhaustive draw
@@ -188,8 +190,8 @@ class RoundState:
             # Check furiten
             waiting = get_hand_waiting_tiles(hand)
             discard_furiten = is_discard_furiten(hand)
-            temp_f = any(w in self.temp_furiten[player_idx] for w in waiting)
-            riichi_f = any(w in self.riichi_furiten[player_idx] for w in waiting)
+            temp_f = is_temporary_furiten(waiting, self.temp_furiten[player_idx])
+            riichi_f = is_riichi_furiten(waiting, self.riichi_furiten[player_idx])
 
             if not discard_furiten and not temp_f and not riichi_f:
                 if self._has_valid_score(player_idx, discard_tile,
@@ -394,7 +396,7 @@ class RoundState:
         }))
 
     def process_call(self, action: Action):
-        """Process a meld call (chi/pon/kan)."""
+        """Process a meld call (chi/pon/daiminkan)."""
         player_idx = action.player
         hand = self.players[player_idx].hand
         meld = action.meld
@@ -403,50 +405,33 @@ class RoundState:
         for p in self.players:
             p.hand.is_ippatsu = False
 
-        if meld.meld_type == MeldType.CHI:
-            # Remove the tiles from hand (not the called tile)
-            for t in meld.tiles:
-                if t != meld.called_tile and t in hand.closed_tiles:
-                    hand.closed_tiles.remove(t)
-            hand.draw_tile = None
-            hand.add_meld(meld)
-            # Mark the discard as called
-            if self.last_discard_player >= 0:
-                dp = self.players[self.last_discard_player].hand.discard_pool
-                if dp:
-                    self.players[self.last_discard_player].hand.discard_called[-1] = True
-            self.event_bus.emit(GameEvent(EventType.CHI, {
-                "player": player_idx,
-                "meld": meld,
-            }))
+        # Move tiles from hand into the meld (the called tile stays external)
+        for t in meld.tiles:
+            if t != meld.called_tile and t in hand.closed_tiles:
+                hand.closed_tiles.remove(t)
+        hand.draw_tile = None
+        hand.add_meld(meld)
 
-        elif meld.meld_type == MeldType.PON:
-            for t in meld.tiles:
-                if t != meld.called_tile and t in hand.closed_tiles:
-                    hand.closed_tiles.remove(t)
-            hand.draw_tile = None
-            hand.add_meld(meld)
-            if self.last_discard_player >= 0:
-                self.players[self.last_discard_player].hand.discard_called[-1] = True
-            self.event_bus.emit(GameEvent(EventType.PON, {
-                "player": player_idx,
-                "meld": meld,
-            }))
+        # Mark the claimed discard in the discarder's pool
+        if self.last_discard_player >= 0:
+            discarder_hand = self.players[self.last_discard_player].hand
+            if discarder_hand.discard_pool:
+                discarder_hand.discard_called[-1] = True
 
-        elif meld.meld_type == MeldType.DAIMINKAN:
-            for t in meld.tiles:
-                if t != meld.called_tile and t in hand.closed_tiles:
-                    hand.closed_tiles.remove(t)
-            hand.draw_tile = None
-            hand.add_meld(meld)
-            if self.last_discard_player >= 0:
-                self.players[self.last_discard_player].hand.discard_called[-1] = True
+        if meld.meld_type == MeldType.DAIMINKAN:
             self.kan_count_total += 1
             self.wall.reveal_new_dora()
             self.event_bus.emit(GameEvent(EventType.KAN, {
                 "player": player_idx,
                 "meld": meld,
                 "new_dora": self.wall.dora_indicators[-1],
+            }))
+        else:
+            event_type = (EventType.CHI if meld.meld_type == MeldType.CHI
+                          else EventType.PON)
+            self.event_bus.emit(GameEvent(event_type, {
+                "player": player_idx,
+                "meld": meld,
             }))
 
     def process_ankan(self, player_idx: int, tiles: List[Tile]):
@@ -565,7 +550,7 @@ class RoundState:
             }))
 
             # Calculate score changes
-            round_result = RoundResult()
+            round_result = RoundResult(self.num_players)
             round_result.winners = [player_idx]
             round_result.score_results = [(player_idx, result)]
 
@@ -632,7 +617,7 @@ class RoundState:
     def process_ron_result(self, winners: List[Tuple[int, ScoreResult]],
                            loser_idx: int):
         """Finalize ron results (supports multiple winners / double ron)."""
-        round_result = RoundResult()
+        round_result = RoundResult(self.num_players)
         round_result.loser = loser_idx
 
         total_from_loser = 0
@@ -688,7 +673,7 @@ class RoundState:
 
     def process_exhaustive_draw(self):
         """Handle exhaustive draw (荒牌流局) with tenpai payments."""
-        round_result = RoundResult()
+        round_result = RoundResult(self.num_players)
         round_result.is_draw = True
         round_result.draw_type = "exhaustive"
 
@@ -730,7 +715,7 @@ class RoundState:
 
     def process_abortive_draw(self, draw_type: str):
         """Handle abortive draw."""
-        round_result = RoundResult()
+        round_result = RoundResult(self.num_players)
         round_result.is_draw = True
         round_result.draw_type = draw_type
         round_result.dealer_continues = True  # Dealer always continues on abortive

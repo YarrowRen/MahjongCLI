@@ -53,7 +53,8 @@ def get_player_input(console: Console, game_view, available: AvailableActions,
             prompt_parts.append(t('prompt.action_pon'))
         if available.can_chi:
             prompt_parts.append(t('prompt.action_chi'))
-        if available.can_ankan or available.can_shouminkan:
+        if (available.can_ankan or available.can_shouminkan
+                or available.can_daiminkan):
             prompt_parts.append(t('prompt.action_kan'))
         if available.can_kita:
             prompt_parts.append(t('prompt.action_kita'))
@@ -99,8 +100,6 @@ def get_player_input(console: Console, game_view, available: AvailableActions,
                 console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
 
         if choice == 'p' and available.can_pon:
-            if len(available.can_pon) == 1:
-                return Action(ActionType.PON, player_idx, meld=available.can_pon[0])
             return Action(ActionType.PON, player_idx, meld=available.can_pon[0])
 
         if choice == 'c' and available.can_chi:

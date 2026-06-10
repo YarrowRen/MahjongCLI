@@ -58,7 +58,12 @@ class GameView:
 
 
 class Player(ABC):
-    """Abstract base class for all players."""
+    """Abstract base class for all players.
+
+    The engine interacts with players exclusively through choose_action
+    (see run_round's get_player_action callback). Discard/riichi tile
+    selection is part of the returned Action.
+    """
 
     def __init__(self, name: str):
         self.name = name
@@ -72,18 +77,6 @@ class Player(ABC):
         1. After drawing: can tsumo/riichi/kan/discard
         2. After opponent's discard: can ron/pon/chi/skip
         """
-        ...
-
-    @abstractmethod
-    def choose_discard(self, game_view: GameView,
-                       available_discards: List[Tile]) -> Tile:
-        """Choose a tile to discard from available options."""
-        ...
-
-    @abstractmethod
-    def choose_riichi_discard(self, game_view: GameView,
-                              riichi_candidates: List[Tile]) -> Tile:
-        """Choose which tile to discard when declaring riichi."""
         ...
 
 

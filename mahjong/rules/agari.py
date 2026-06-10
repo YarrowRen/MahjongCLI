@@ -22,8 +22,24 @@ def is_agari(tiles_34: List[int]) -> bool:
 
 
 def is_standard_agari(tiles_34: List[int]) -> bool:
-    """Check standard form (4 mentsu + 1 jantai)."""
-    return len(decompose_standard(tiles_34)) > 0
+    """Check standard form (4 mentsu + 1 jantai).
+
+    Fast path: stops at the first valid decomposition instead of
+    enumerating all of them (decompose_standard is for scoring only).
+    """
+    total = sum(tiles_34)
+    if total % 3 != 2:
+        return False
+
+    num_mentsu_needed = (total - 2) // 3
+    for head in range(34):
+        if tiles_34[head] < 2:
+            continue
+        remaining = list(tiles_34)
+        remaining[head] -= 2
+        if _extract_mentsu(remaining, 0, num_mentsu_needed, []):
+            return True
+    return False
 
 
 def decompose_standard(tiles_34: List[int]) -> List[Decomposition]:
@@ -33,27 +49,6 @@ def decompose_standard(tiles_34: List[int]) -> List[Decomposition]:
     The array should have exactly 14, 11, 8, 5, or 2 tiles total
     depending on number of melds.
     """
-    total = sum(tiles_34)
-    if total % 3 != 2:
-        return []
-
-    num_mentsu_needed = (total - 2) // 3
-    results = []
-
-    # Try each possible head (pair)
-    for head in range(34):
-        if tiles_34[head] < 2:
-            continue
-        remaining = list(tiles_34)
-        remaining[head] -= 2
-        mentsu_list: List[Mentsu] = []
-        if _extract_mentsu(remaining, 0, num_mentsu_needed, mentsu_list):
-            results.append((head, list(mentsu_list)))
-            # Continue searching for more decompositions
-            # We need a more thorough search
-        mentsu_list.clear()
-
-    # Do a thorough search
     return _decompose_all(tiles_34)
 
 

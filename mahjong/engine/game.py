@@ -1,11 +1,11 @@
 """Game management - hanchan (半荘) / tonpuusen (東風戦)."""
 
-from typing import List, Optional, Callable
+from typing import List
 
 from mahjong.core.wall import Wall
 from mahjong.core.player_state import PlayerState, Wind
 from mahjong.engine.event import EventBus, EventType, GameEvent
-from mahjong.engine.round import RoundState, RoundResult, run_round
+from mahjong.engine.round import RoundState, RoundResult
 from mahjong.engine.time_control import TimeControl, TIME_CONTROL_PRESETS
 
 
@@ -183,34 +183,3 @@ class GameState:
             "scores": self.final_scores,
             "players": [(p.name, p.score) for p in self.players],
         }))
-
-
-def run_game(config: GameConfig, player_names: List[str],
-             get_player_action: Callable, event_bus: EventBus) -> GameState:
-    """Run a complete game.
-
-    Args:
-        config: Game configuration
-        player_names: Names for each player
-        get_player_action: Callable(player_idx, available_actions) -> Action
-        event_bus: Event bus for UI updates
-
-    Returns:
-        Completed GameState
-    """
-    game = GameState(config, player_names, event_bus)
-
-    game.event_bus.emit(GameEvent(EventType.GAME_START, {
-        "config": config,
-        "players": [(p.name, p.score) for p in game.players],
-    }))
-
-    while not game.is_finished:
-        round_state = game.setup_round()
-        result = run_round(round_state, get_player_action)
-        if result:
-            game.advance_round(result)
-        else:
-            break
-
-    return game

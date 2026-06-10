@@ -17,6 +17,18 @@ from mahjong.ui.i18n import t, translate_yaku, get_draw_message
 from mahjong.rules.scoring import ScoreResult
 
 
+def _render_melds_line(console: Console, melds):
+    """Render one line of melds ('副露: ...'), or nothing if no melds."""
+    if not melds:
+        return
+    meld_text = Text(f"  {t('label.melds')} ")
+    for i, meld in enumerate(melds):
+        if i > 0:
+            meld_text.append(" | ")
+        meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
+    console.print(meld_text)
+
+
 def render_board(console: Console, game_view: GameView):
     """Render the full board state."""
     console.clear()
@@ -98,14 +110,7 @@ def _render_player_row(console: Console, entry: dict):
         f"{entry['score']}{pts}{riichi_mark}"
     )
 
-    # Melds
-    if entry['melds']:
-        meld_text = Text(f"  {t('label.melds')} ")
-        for i, meld in enumerate(entry['melds']):
-            if i > 0:
-                meld_text.append(" | ")
-            meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
-        console.print(meld_text)
+    _render_melds_line(console, entry['melds'])
 
     # Discard pool
     if entry['discard_pool']:
@@ -196,14 +201,7 @@ def _render_player_hand(console: Console, game_view: GameView):
 
     console.print(tile_text)
 
-    # Melds
-    if hand.melds:
-        meld_text = Text(f"  {t('label.melds')} ")
-        for i, meld in enumerate(hand.melds):
-            if i > 0:
-                meld_text.append(" | ")
-            meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
-        console.print(meld_text)
+    _render_melds_line(console, hand.melds)
 
     console.print()
 
@@ -328,14 +326,7 @@ def render_round_end_hands(console: Console, players: list,
             else:
                 console.print(f"  {t('label.hand_tiles')} {t('label.none')}", style="dim")
 
-        # Melds
-        if hand.melds:
-            meld_text = Text(f"  {t('label.melds')} ")
-            for j, meld in enumerate(hand.melds):
-                if j > 0:
-                    meld_text.append(" | ")
-                meld_text.append_text(tiles_to_rich_text(list(meld.tiles)))
-            console.print(meld_text)
+        _render_melds_line(console, hand.melds)
 
         console.print()
 

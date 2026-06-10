@@ -166,11 +166,11 @@ def show_menu() -> int:
         console.print(f"  [red]{t('prompt.invalid_input')}[/red]")
 
 
-def create_game(choice: int, time_control: TimeControl = None):
+def create_game(choice: int, time_control: TimeControl = None,
+                is_spectator: bool = False):
     """Create game based on menu choice."""
     is_sanma = choice in (3, 4)
     is_tonpuu = choice in (2, 4)
-    is_spectator = choice == 5
     num_players = 3 if is_sanma else 4
 
     config = GameConfig(
@@ -200,14 +200,14 @@ def create_game(choice: int, time_control: TimeControl = None):
         for name in ai_names[:num_players - 1]:
             players[name] = GreedyAI(name)
 
-    return config, event_bus, renderer, player_names, players, is_spectator
+    return config, event_bus, renderer, player_names, players
 
 
 def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
     """Play a complete game."""
     is_spectator = choice == 5
-    config, event_bus, renderer, player_names, players, is_spectator = create_game(
-        choice, time_control if not is_spectator else None
+    config, event_bus, renderer, player_names, players = create_game(
+        choice, time_control if not is_spectator else None, is_spectator
     )
 
     game = GameState(config, player_names, event_bus)

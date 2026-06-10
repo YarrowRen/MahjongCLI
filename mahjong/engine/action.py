@@ -23,16 +23,6 @@ class ActionType(Enum):
     KYUUSHU = "kyuushu"     # Nine different terminals/honors redraw
 
 
-# Priority for resolving conflicting claims
-ACTION_PRIORITY = {
-    ActionType.RON: 0,      # Highest
-    ActionType.DAIMINKAN: 1,
-    ActionType.PON: 1,
-    ActionType.CHI: 2,
-    ActionType.SKIP: 99,
-}
-
-
 @dataclass
 class Action:
     """A player action."""
