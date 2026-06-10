@@ -166,6 +166,41 @@ class TestRoundReplay:
         assert rr.remaining == fresh.remaining
 
 
+class TestReplayScreen:
+    def test_renders_every_step_without_error(self, log_dir):
+        """Render every board state and the result panel to a buffer."""
+        from io import StringIO
+        from rich.console import Console
+        from mahjong.ui import replay_screen
+
+        path = _generate_log(log_dir, 11, GameConfig(num_players=4))
+        data = load_game(path)
+        console = Console(file=StringIO(), force_terminal=False, width=100)
+
+        for round_data in data["rounds"]:
+            rr = RoundReplay(round_data, data["players"], False)
+            for n in range(rr.num_steps + 1):
+                rr.goto(n)
+                replay_screen._render_board(console, rr)
+            replay_screen._render_result(console, rr)
+
+    def test_sanma_renders_kita(self, log_dir):
+        from io import StringIO
+        from rich.console import Console
+        from mahjong.ui import replay_screen
+
+        path = _generate_log(log_dir, 7,
+                             GameConfig(num_players=3, is_sanma=True))
+        data = load_game(path)
+        console = Console(file=StringIO(), force_terminal=False, width=100)
+
+        for round_data in data["rounds"]:
+            rr = RoundReplay(round_data, data["players"], True)
+            rr.goto(rr.num_steps)
+            replay_screen._render_board(console, rr)
+            replay_screen._render_result(console, rr)
+
+
 class TestLoader:
     def test_list_and_load(self, log_dir):
         path = _generate_log(log_dir, 3, GameConfig(num_players=4))

@@ -154,13 +154,14 @@ def show_menu() -> int:
     console.print(f"    4. {t('mode.3p_tonpuu')}")
     console.print(f"    5. {t('mode.spectator')}")
     console.print(f"    6. {t('mode.settings')}")
+    console.print(f"    7. {t('mode.replay')}")
     console.print(f"    0. {t('mode.quit')}")
     console.print()
 
     while True:
         try:
-            choice = int(console.input(f"  > {t('prompt.choose_mode', n=6)} ").strip())
-            if 0 <= choice <= 6:
+            choice = int(console.input(f"  > {t('prompt.choose_mode', n=7)} ").strip())
+            if 0 <= choice <= 7:
                 return choice
         except (ValueError, EOFError):
             pass
@@ -347,6 +348,10 @@ def main():
                 break
             elif choice == 6:
                 time_control, ai_delay = show_settings(time_control, ai_delay)
+                continue
+            elif choice == 7:
+                from mahjong.ui.replay_screen import show_replay_browser
+                show_replay_browser(console)
                 continue
             play_game(choice, time_control, ai_delay)
             console.print()
