@@ -26,6 +26,9 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 - **Multilingual** - Chinese, Japanese, and English interface
 - **Colored Tiles** - Rich terminal rendering with colored tile display
 - **A+B Time Control** - Base + bank seconds per action, real-time countdown with per-second refresh (unlimited by default)
+- **Game Replay** - Browse finished games and step through every action in god view (menu option 7)
+- **Game Logs** - Every finished game is recorded as JSON under `logs/` (full wall, all actions, results)
+- **Adjustable AI Speed** - 1s / 3s / 5s / random delay presets in Settings
 
 ## Install
 
@@ -51,7 +54,7 @@ Or run from source:
 python main.py
 ```
 
-The game starts in Chinese by default. Language and time control can be changed in **Settings** (main menu option 6).
+The game starts in Chinese by default. Language, time control, and AI speed can be changed in **Settings** (main menu option 6). **Replay** (option 7) lets you review any finished game step by step.
 
 ### Run Tests
 
@@ -74,6 +77,15 @@ pytest tests/
 | `9` | Nine-tile draw |
 | `s` | Skip |
 
+### Replay Controls
+
+| Key | Action |
+|------|------|
+| `Enter` | Next step |
+| `b` | Previous step |
+| number | Jump to step |
+| `q` | Back |
+
 ## Project Structure
 
 ```
@@ -88,36 +100,41 @@ game/
 │   │   ├── wall.py             # Wall and dead wall
 │   │   └── player_state.py     # Player state tracking
 │   ├── rules/                  # Rule engine (pure functions, stateless)
-│   │   ├── agari.py            # Win detection
-│   │   ├── shanten.py          # Shanten calculation
+│   │   ├── agari.py            # Win detection (LRU cached)
+│   │   ├── shanten.py          # Shanten calculation (LRU cached)
 │   │   ├── fu.py               # Fu calculation
 │   │   ├── yaku.py             # Yaku detection (30+ types)
 │   │   ├── scoring.py          # Score calculation
-│   │   ├── furiten.py          # Furiten detection
-│   │   └── sanma_rules.py      # 3-player special rules
+│   │   └── furiten.py          # Furiten detection
 │   ├── engine/                 # Game engine
 │   │   ├── game.py             # Hanchan/Tonpuusen management
 │   │   ├── round.py            # Single round flow control
 │   │   ├── action.py           # Action definitions
 │   │   ├── event.py            # Event bus
 │   │   ├── game_logger.py      # Game logging
-│   │   └── time_control.py     # A+B time control presets
+│   │   ├── time_control.py     # A+B time control presets
+│   │   └── ai_delay.py         # AI action speed presets
 │   ├── player/                 # Player abstraction & AI
 │   │   ├── base.py             # Player base class + GameView
 │   │   ├── human.py            # Human player + timing logic
 │   │   └── greedy_ai.py        # Greedy AI
+│   ├── replay/                 # Game replay
+│   │   ├── loader.py           # Log scanning & loading
+│   │   └── state.py            # Step-by-step state reconstruction
 │   └── ui/                     # Terminal UI
-│       ├── renderer.py         # Rich rendering engine
+│       ├── renderer.py         # Rendering facade
 │       ├── tile_display.py     # Tile display formatting
 │       ├── board_layout.py     # Board layout rendering
+│       ├── replay_screen.py    # Replay browser (menu option 7)
 │       ├── input_handler.py    # User input handling
 │       ├── timeout_input.py    # Timed input + live countdown (ANSI)
 │       ├── i18n.py             # Internationalization (zh/ja/en)
+│       ├── labels.py           # Localized label construction
 │       └── locales/            # Translation files
 │           ├── zh.py           # Chinese translations
 │           ├── ja.py           # Japanese translations
 │           └── en.py           # English translations
-├── tests/                      # Unit tests (126 cases)
+├── tests/                      # Unit tests (168 cases)
 └── data/
     └── scoring_table.json      # Han/fu → points lookup table
 ```
@@ -174,9 +191,11 @@ tests/tenhou_replay/test_tenhou_replay.py - 1000 passed
 
 - **Dual Encoding** - 136-encoding tracks unique tile identity, 34-encoding for efficient algorithms
 - **GameView Barrier** - AI and human use the same interface, ensuring fairness
-- **EventBus Decoupling** - Engine notifies UI via events for extensibility
-- **Swappable AI** - Standard interface allows future AI model integration
-- **i18n Architecture** - `t()` translation function with locale dictionaries, yaku names used as stable keys
+- **Strict Layering** - core/engine/rules never import the UI layer; translations live entirely in `ui/`
+- **EventBus Logging** - the engine emits events consumed by the game logger; replays are rebuilt from these logs
+- **Swappable AI** - Standard interface (a single `choose_action` protocol) allows future AI model integration
+- **i18n Architecture** - `t()` translation function with locale dictionaries, yaku names used as stable keys; locale consistency is enforced by tests
+- **Invariant Tests** - AI self-play smoke tests assert point conservation after every round
 
 ## Dependencies
 
@@ -200,3 +219,7 @@ This project was **fully implemented by [Claude Code](https://claude.ai/claude-c
 | Scale | ~30 source files, 120 unit tests |
 | Tokens | ~200K+ tokens (planning, code generation, test fixing) |
 | Date | 2025-02-12 |
+
+### Later Iterations
+
+All subsequent versions were also implemented by Claude Code, including: multilingual interface and PyPI release (v1.1.0), the A+B time control system and settings menu (v1.1.x), rule-engine verification against 1,000 real Tenhou games, a full engine audit in 2026-06 (fixed tenhou/chankan/kita-dora/riichi-stick-conservation bugs, removed dead code, enforced layering, added LRU caching), and the step-by-step game replay feature.
