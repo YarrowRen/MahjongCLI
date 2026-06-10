@@ -168,8 +168,13 @@ class RoundState:
         return actions
 
     def get_response_actions(self, player_idx: int, discard_tile: Tile,
-                             discard_player: int) -> AvailableActions:
-        """Get available actions in response to another player's discard."""
+                             discard_player: int,
+                             is_chankan: bool = False) -> AvailableActions:
+        """Get available actions in response to another player's discard.
+
+        With is_chankan=True the tile is a shouminkan tile being robbed:
+        only ron is possible and the chankan yaku applies.
+        """
         hand = self.players[player_idx].hand
         closed_34 = hand.to_34_array()
         actions = AvailableActions(player=player_idx)
@@ -187,8 +192,13 @@ class RoundState:
             riichi_f = any(w in self.riichi_furiten[player_idx] for w in waiting)
 
             if not discard_furiten and not temp_f and not riichi_f:
-                if self._has_valid_score(player_idx, discard_tile, is_tsumo=False):
+                if self._has_valid_score(player_idx, discard_tile,
+                                         is_tsumo=False, is_chankan=is_chankan):
                     actions.can_ron = True
+
+        if is_chankan:
+            # Robbing a kan: no calls other than ron
+            return actions
 
         if hand.is_riichi:
             # Can only ron after riichi, no other calls
@@ -286,7 +296,7 @@ class RoundState:
         return candidates
 
     def _has_valid_score(self, player_idx: int, win_tile: Tile,
-                         is_tsumo: bool) -> bool:
+                         is_tsumo: bool, is_chankan: bool = False) -> bool:
         """Check if a win would produce valid yaku (not just a pattern match)."""
         player = self.players[player_idx]
         hand = player.hand
@@ -313,6 +323,7 @@ class RoundState:
             is_haitei=self.is_haitei if is_tsumo else False,
             is_houtei=self.is_haitei if not is_tsumo else False,
             is_rinshan=self.is_rinshan,
+            is_chankan=is_chankan,
             is_tenhou=(player.is_dealer and self.first_draw[player_idx]
                        and self._no_calls_made()),
             is_chiihou=(not player.is_dealer and self.first_draw[player_idx]
@@ -583,7 +594,8 @@ class RoundState:
         return result
 
     def process_ron(self, winner_idx: int, loser_idx: int,
-                    win_tile: Tile) -> Optional[ScoreResult]:
+                    win_tile: Tile,
+                    is_chankan: bool = False) -> Optional[ScoreResult]:
         """Process ron (win off discard)."""
         player = self.players[winner_idx]
         hand = player.hand
@@ -608,6 +620,7 @@ class RoundState:
             is_double_riichi=hand.is_double_riichi,
             is_ippatsu=hand.is_ippatsu,
             is_houtei=is_last_tile,
+            is_chankan=is_chankan,
             is_sanma=self.is_sanma,
         )
 
@@ -853,11 +866,13 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             for i in range(rs.num_players):
                 if i == current:
                     continue
-                resp = rs.get_response_actions(i, action.tile, current)
+                resp = rs.get_response_actions(i, action.tile, current,
+                                               is_chankan=True)
                 if resp.can_ron:
                     chankan_action = get_player_action(i, resp)
                     if chankan_action.action_type == ActionType.RON:
-                        result = rs.process_ron(i, current, action.tile)
+                        result = rs.process_ron(i, current, action.tile,
+                                                is_chankan=True)
                         if result:
                             chankan_winners.append((i, result))
 
