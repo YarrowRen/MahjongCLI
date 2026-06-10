@@ -606,8 +606,10 @@ def _verify_agari(rs: RoundState, rd: RoundData, event: Event, step_desc: str,
             is_ippatsu=hand.is_ippatsu,
             is_haitei=rs.is_haitei,
             is_rinshan=rs.is_rinshan,
-            is_tenhou=(player.is_dealer and rs.turn_count == 0),
-            is_chiihou=(not player.is_dealer and rs.first_draw[winner]),
+            is_tenhou=(player.is_dealer and rs.first_draw[winner]
+                       and rs._no_calls_made()),
+            is_chiihou=(not player.is_dealer and rs.first_draw[winner]
+                        and rs._no_calls_made()),
             is_sanma=rs.is_sanma,
             kita_count=kita_count,
         )

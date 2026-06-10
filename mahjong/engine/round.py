@@ -148,8 +148,9 @@ class RoundState:
             if north_tiles:
                 actions.can_kita = True
 
-        # Check kyuushu kyuuhai (nine terminals redraw) - only on first draw
-        if self.first_draw[player_idx] and self.turn_count < self.num_players:
+        # Check kyuushu kyuuhai (nine terminals redraw):
+        # only on the player's first draw with no calls made before it
+        if self.first_draw[player_idx] and self._no_calls_made():
             yaochu_types = sum(1 for i in YAOCHU_INDICES if closed_34[i] > 0)
             if yaochu_types >= 9:
                 actions.can_kyuushu = True
@@ -257,6 +258,13 @@ class RoundState:
                         discard_tile, from_player)
             actions.can_chi.append(meld)
 
+    def _no_calls_made(self) -> bool:
+        """Whether no chi/pon/kan (or kita in sanma) has happened this round."""
+        no_calls = all(len(p.hand.melds) == 0 for p in self.players)
+        if self.is_sanma:
+            no_calls = no_calls and all(len(p.kita_tiles) == 0 for p in self.players)
+        return no_calls
+
     def _get_riichi_candidates(self, player_idx: int) -> List[Tile]:
         """Get tiles that can be discarded for riichi (must result in tenpai)."""
         hand = self.players[player_idx].hand
@@ -303,8 +311,10 @@ class RoundState:
             is_haitei=self.is_haitei if is_tsumo else False,
             is_houtei=self.is_haitei if not is_tsumo else False,
             is_rinshan=self.is_rinshan,
-            is_tenhou=(player.is_dealer and self.turn_count == 0),
-            is_chiihou=(not player.is_dealer and self.first_draw[player_idx]),
+            is_tenhou=(player.is_dealer and self.first_draw[player_idx]
+                       and self._no_calls_made()),
+            is_chiihou=(not player.is_dealer and self.first_draw[player_idx]
+                        and self._no_calls_made()),
             is_sanma=self.is_sanma,
         )
         return result is not None
@@ -483,10 +493,7 @@ class RoundState:
         hand = self.players[player_idx].hand
 
         # Check for double riichi (first turn, no calls made)
-        no_calls = all(len(p.hand.melds) == 0 for p in self.players)
-        if self.is_sanma:
-            no_calls = no_calls and all(len(p.kita_tiles) == 0 for p in self.players)
-        is_double = self.first_draw[player_idx] and no_calls
+        is_double = self.first_draw[player_idx] and self._no_calls_made()
 
         hand.is_riichi = True
         hand.is_ippatsu = True
@@ -529,8 +536,10 @@ class RoundState:
             is_ippatsu=hand.is_ippatsu,
             is_haitei=self.is_haitei,
             is_rinshan=self.is_rinshan,
-            is_tenhou=(player.is_dealer and self.turn_count == 0),
-            is_chiihou=(not player.is_dealer and self.first_draw[player_idx]),
+            is_tenhou=(player.is_dealer and self.first_draw[player_idx]
+                       and self._no_calls_made()),
+            is_chiihou=(not player.is_dealer and self.first_draw[player_idx]
+                        and self._no_calls_made()),
             is_sanma=self.is_sanma,
         )
 
