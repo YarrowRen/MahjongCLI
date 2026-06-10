@@ -321,7 +321,7 @@ class RoundState:
             is_double_riichi=hand.is_double_riichi,
             is_ippatsu=hand.is_ippatsu,
             is_haitei=self.is_haitei if is_tsumo else False,
-            is_houtei=self.is_haitei if not is_tsumo else False,
+            is_houtei=(self.wall.remaining == 0) if not is_tsumo else False,
             is_rinshan=self.is_rinshan,
             is_chankan=is_chankan,
             is_tenhou=(player.is_dealer and self.first_draw[player_idx]
