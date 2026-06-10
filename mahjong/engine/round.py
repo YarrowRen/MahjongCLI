@@ -329,6 +329,7 @@ class RoundState:
             is_chiihou=(not player.is_dealer and self.first_draw[player_idx]
                         and self._no_calls_made()),
             is_sanma=self.is_sanma,
+            kita_count=len(player.kita_tiles),
         )
         return result is not None
 
@@ -554,6 +555,7 @@ class RoundState:
             is_chiihou=(not player.is_dealer and self.first_draw[player_idx]
                         and self._no_calls_made()),
             is_sanma=self.is_sanma,
+            kita_count=len(player.kita_tiles),
         )
 
         if result:
@@ -622,6 +624,7 @@ class RoundState:
             is_houtei=is_last_tile,
             is_chankan=is_chankan,
             is_sanma=self.is_sanma,
+            kita_count=len(player.kita_tiles),
         )
 
         return result
