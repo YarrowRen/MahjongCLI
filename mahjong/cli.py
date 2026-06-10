@@ -24,6 +24,7 @@ from mahjong.engine.game_logger import GameLogger
 from mahjong.engine.time_control import TIME_CONTROL_PRESETS, TimeControl
 from mahjong.engine.ai_delay import AI_DELAY_PRESETS, AIDelay
 from mahjong.ui.i18n import t, set_language, get_language
+from mahjong.ui.labels import round_label
 
 console = Console()
 
@@ -237,8 +238,9 @@ def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
 
     while not game.is_finished:
         round_state = game.setup_round()
+        label = round_label(game.round_wind, game.round_number, game.honba)
         console.print(f"\n  [bold cyan]{'='*50}[/bold cyan]")
-        console.print(f"  [bold]{game.round_label}[/bold]")
+        console.print(f"  [bold]{label}[/bold]")
 
         def get_action(player_idx, available):
             """Route action requests to appropriate player."""
@@ -254,7 +256,7 @@ def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
                     game.round_wind, game.honba, game.riichi_sticks,
                     round_state.wall.remaining,
                     round_state.wall.dora_indicators,
-                    game.round_label,
+                    label,
                     round_state.last_discard,
                     round_state.last_discard_player,
                 )
@@ -266,7 +268,7 @@ def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
                 game.round_wind, game.honba, game.riichi_sticks,
                 round_state.wall.remaining,
                 round_state.wall.dora_indicators,
-                game.round_label,
+                label,
                 round_state.last_discard,
                 round_state.last_discard_player,
             )

@@ -14,6 +14,7 @@ from mahjong.ui.tile_display import (
     tile_to_display_str, _tile_display_width
 )
 from mahjong.ui.i18n import t, translate_yaku, get_draw_message
+from mahjong.ui.labels import wind_display, rank_display
 from mahjong.rules.scoring import ScoreResult
 
 
@@ -36,7 +37,7 @@ def render_board(console: Console, game_view: GameView):
     # Header: round info
     dora_text = tiles_to_rich_text(game_view.dora_indicators)
     header = Text()
-    header.append(f"  {game_view.round_label}  {t('label.round_wind')}:{game_view.round_wind.display_name}  {t('label.dora')}: ")
+    header.append(f"  {game_view.round_label}  {t('label.round_wind')}:{wind_display(game_view.round_wind)}  {t('label.dora')}: ")
     header.append_text(dora_text)
     header.append(f"\n  {t('label.remaining', n=game_view.remaining_tiles)}")
     header.append(f"  {t('label.riichi_sticks', n=game_view.riichi_sticks)}")
@@ -95,7 +96,7 @@ def _render_all_players(console: Console, game_view: GameView):
 
 def _render_player_row(console: Console, entry: dict):
     """Render one player's header + melds + discard pool."""
-    wind_display = entry['wind'].display_name
+    wind_str = wind_display(entry['wind'])
     dealer_mark = f" ({t('label.dealer_mark')})" if entry['is_dealer'] else ""
     riichi_mark = f" [bold red]【{t('label.riichi_mark')}】[/bold red]" if entry['is_riichi'] else ""
 
@@ -106,7 +107,7 @@ def _render_player_row(console: Console, entry: dict):
 
     pts = t('label.points_suffix')
     console.print(
-        f"  {name_display} ({wind_display}{dealer_mark}) "
+        f"  {name_display} ({wind_str}{dealer_mark}) "
         f"{entry['score']}{pts}{riichi_mark}"
     )
 
@@ -261,7 +262,7 @@ def render_win_screen(console: Console, player_name: str,
     if score_result.is_yakuman:
         console.print(f"  [bold red]{t('msg.yakuman', points=score_result.total_points)}[/bold red]")
     else:
-        console.print(f"  {score_result.rank_name} "
+        console.print(f"  {rank_display(score_result)} "
                        f"{score_result.total_points}{pts}")
 
     console.print()
@@ -280,7 +281,7 @@ def render_round_end_hands(console: Console, players: list,
 
     for i, p in enumerate(players):
         hand = p.hand
-        wind_display = p.seat_wind.display_name
+        wind_str = wind_display(p.seat_wind)
         is_winner = i in winners
 
         # Name header
@@ -291,7 +292,7 @@ def render_round_end_hands(console: Console, players: list,
         else:
             tag = ""
 
-        console.print(f"  {player_names[i]} ({wind_display}){tag}")
+        console.print(f"  {player_names[i]} ({wind_str}){tag}")
 
         # Hand tiles
         if is_winner and hand.draw_tile:

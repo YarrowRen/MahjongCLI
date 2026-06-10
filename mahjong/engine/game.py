@@ -57,16 +57,6 @@ class GameState:
         self.final_scores: List[int] = []
 
     @property
-    def round_label(self) -> str:
-        """Human-readable round label like '東一局' (localized)."""
-        from mahjong.ui.i18n import t
-        wind = self.round_wind.display_name
-        number = t(f'round.numbers.{self.round_number}')
-        label = t('round.format', wind=wind, number=number)
-        honba_str = t('round.honba', n=self.honba) if self.honba > 0 else ""
-        return f"{label}{honba_str}"
-
-    @property
     def dealer_seat(self) -> int:
         """Current dealer seat index."""
         return self.round_number % self.config.num_players

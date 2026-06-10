@@ -34,10 +34,12 @@ class TestGameConfig:
 
 class TestGameState:
     def test_round_label(self):
+        from mahjong.ui.labels import round_label
         config = GameConfig()
         event_bus = EventBus()
         game = GameState(config, ["A", "B", "C", "D"], event_bus)
-        assert "東一局" in game.round_label
+        label = round_label(game.round_wind, game.round_number, game.honba)
+        assert "東一局" in label
 
     def test_setup_round(self):
         config = GameConfig()
