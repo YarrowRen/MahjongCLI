@@ -3,6 +3,7 @@
 A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (yonma) and 3-player (sanma) modes, with multilingual interface (Chinese/Japanese/English), built with Python + Rich.
 
 [![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/riichi-mahjong-cli?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/riichi-mahjong-cli)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
 [![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
 

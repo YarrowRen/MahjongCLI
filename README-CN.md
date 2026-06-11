@@ -3,6 +3,7 @@
 一款功能完整的日本立直麻将终端CLI游戏，支持四人麻（yonma）和三人麻（sanma），多语言界面（中/日/英），使用 Python + Rich 库实现终端渲染。
 
 [![PyPI](https://img.shields.io/pypi/v/riichi-mahjong-cli)](https://pypi.org/project/riichi-mahjong-cli/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/riichi-mahjong-cli?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/riichi-mahjong-cli)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
 [![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
 

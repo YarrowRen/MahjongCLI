@@ -112,7 +112,7 @@ def show_settings(current_time_control: TimeControl,
             padding=(0, 4),
         ))
         console.print()
-        console.print(f"    1. {t('settings.change_lang')}")
+        console.print(f"    1. {t('settings.change_lang')}  [dim](Change Language / 言語切替)[/dim]")
         console.print(f"    2. {t('settings.change_time')}")
         console.print(f"    3. {t('settings.change_ai_delay')}")
         console.print(f"    0. {t('settings.back')}")
@@ -153,7 +153,7 @@ def show_menu() -> int:
     console.print(f"    3. {t('mode.3p')}")
     console.print(f"    4. {t('mode.3p_tonpuu')}")
     console.print(f"    5. {t('mode.spectator')}")
-    console.print(f"    6. {t('mode.settings')}")
+    console.print(f"    6. {t('mode.settings')}  [dim](Settings / 設定)[/dim]")
     console.print(f"    7. {t('mode.replay')}")
     console.print(f"    0. {t('mode.quit')}")
     console.print()
