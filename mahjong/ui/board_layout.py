@@ -280,10 +280,9 @@ def render_win_screen(console: Console, player_name: str,
 
 def render_round_end_hands(console: Console, players: list,
                            player_names: list, winners: list,
-                           loser: int = None):
+                           loser: int = None, ron_tile=None):
     """Render all players' hands after a round ends (win or draw)."""
-    ron_tile = None
-    if loser is not None and players[loser].hand.discard_pool:
+    if ron_tile is None and loser is not None and players[loser].hand.discard_pool:
         ron_tile = players[loser].hand.discard_pool[-1]
 
     console.print(f"  [bold]{t('label.all_hands')}[/bold]")

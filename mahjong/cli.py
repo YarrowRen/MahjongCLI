@@ -288,7 +288,6 @@ def play_game(choice: int, time_control: TimeControl, ai_delay: AIDelay):
         round_count += 1
 
         if not game.is_finished:
-            render_scores(console, [(p.name, p.score) for p in game.players])
             if not is_spectator:
                 renderer.pause()
 
@@ -324,6 +323,7 @@ def _show_round_result(game, result, player_names):
     render_round_end_hands(
         console, game.players, player_names,
         result.winners, result.loser,
+        ron_tile=result.win_tile,
     )
 
     # Yaku + point total for each winner
@@ -331,8 +331,9 @@ def _show_round_result(game, result, player_names):
         for _winner_idx, score_result in result.score_results:
             render_yaku_summary(console, score_result)
 
-    # Merged score change + current score table
-    current_scores = [p.score for p in game.players]
+    # Merged score change + post-change score table
+    current_scores = [p.score + result.score_changes[i]
+                      for i, p in enumerate(game.players)]
     render_score_changes(console, player_names, result.score_changes, current_scores)
 
 

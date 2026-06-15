@@ -32,6 +32,7 @@ class RoundResult:
         self.riichi_sticks_winner: Optional[int] = None
         # Sticks left on the table after a draw (carried to the next round)
         self.riichi_sticks_on_table: int = 0
+        self.win_tile: Optional[Tile] = None
 
 
 class RoundState:
@@ -615,10 +616,12 @@ class RoundState:
         return result
 
     def process_ron_result(self, winners: List[Tuple[int, ScoreResult]],
-                           loser_idx: int):
+                           loser_idx: int,
+                           win_tile: Optional["Tile"] = None):
         """Finalize ron results (supports multiple winners / double ron)."""
         round_result = RoundResult(self.num_players)
         round_result.loser = loser_idx
+        round_result.win_tile = win_tile
 
         total_from_loser = 0
         for winner_idx, result in winners:
@@ -849,6 +852,9 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             continue
 
         elif action.action_type == ActionType.SHOUMINKAN:
+            # Update last_discard to the kan tile so UI highlights it correctly
+            rs.last_discard = action.tile
+            rs.last_discard_player = current
             # Check chankan (robbing the kan)
             chankan_winners = []
             for i in range(rs.num_players):
@@ -865,7 +871,8 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
                             chankan_winners.append((i, result))
 
             if chankan_winners:
-                rs.process_ron_result(chankan_winners, current)
+                rs.process_ron_result(chankan_winners, current,
+                                      win_tile=action.tile)
                 break
 
             rs.process_shouminkan(current, action.tile)
@@ -941,7 +948,8 @@ def run_round(round_state: RoundState, get_player_action) -> RoundResult:
             if len(ron_actions) >= 3 and not rs.is_sanma:
                 rs.process_abortive_draw("triple_ron")
                 break
-            rs.process_ron_result(ron_actions, discard_player)
+            rs.process_ron_result(ron_actions, discard_player,
+                                  win_tile=discard_tile)
             break
 
         # Update temp furiten AFTER response collection:
