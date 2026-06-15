@@ -6,16 +6,15 @@
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/riichi-mahjong-cli?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/riichi-mahjong-cli)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
 [![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [English README](https://github.com/YarrowRen/MahjongCLI/blob/master/README.md)
 
 ## 预览
 
-| 游戏界面 | 和了结算 |
-|---------|---------|
-| ![游戏界面](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img1.png) | ![和了结算](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img2.png) |
+![正常出牌](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_zh.gif)
 
-![出牌操作](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img3.png)
+![副露操作](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_zh.gif)
 
 ## 功能特性
 

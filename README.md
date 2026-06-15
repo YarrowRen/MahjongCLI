@@ -6,16 +6,15 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/riichi-mahjong-cli?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/riichi-mahjong-cli)
 [![GitHub](https://img.shields.io/badge/GitHub-YarrowRen%2FMahjongCLI-181717?logo=github)](https://github.com/YarrowRen/MahjongCLI)
 [![MahjongCLI DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/YarrowRen/MahjongCLI)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [中文文档](https://github.com/YarrowRen/MahjongCLI/blob/master/README-CN.md)
 
 ## Preview
 
-| Game Board | Winning Screen |
-|---------|---------|
-| ![Game Board](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img1.png) | ![Winning Screen](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img2.png) |
+![Normal Play](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_en.gif)
 
-![Discard Action](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/img3.png)
+![Meld Actions](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_en.gif)
 
 ## Features
 
