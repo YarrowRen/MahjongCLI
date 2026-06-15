@@ -12,9 +12,10 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 
 ## Preview
 
-![Normal Play](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_en.gif)
-
-![Meld Actions](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_en.gif)
+<table><tr>
+<td><img src="https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_en.gif" alt="Normal Play"/></td>
+<td><img src="https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_en.gif" alt="Meld Actions"/></td>
+</tr></table>
 
 ## Features
 

@@ -12,9 +12,10 @@
 
 ## 预览
 
-![正常出牌](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_zh.gif)
-
-![副露操作](https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_zh.gif)
+<table><tr>
+<td><img src="https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/02_normal_zh.gif" alt="正常出牌"/></td>
+<td><img src="https://raw.githubusercontent.com/YarrowRen/MahjongCLI/master/data/static/gifs/03_meld_zh.gif" alt="副露操作"/></td>
+</tr></table>
 
 ## 功能特性
 
