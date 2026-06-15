@@ -25,7 +25,7 @@ A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (
 - **Greedy AI Opponents** - Shanten-based AI with basic defense
 - **Spectator Mode** - AI vs AI auto-play
 - **Multilingual** - Chinese, Japanese, and English interface
-- **Colored Tiles** - Rich terminal rendering with colored tile display
+- **Colored Tiles** - Rich terminal rendering; red fives shown in orange, draw tile and call/ron target tile highlighted
 - **A+B Time Control** - Base + bank seconds per action, real-time countdown with per-second refresh (unlimited by default)
 - **Game Replay** - Browse finished games and step through every action in god view (menu option 7)
 - **Game Logs** - Every finished game is recorded as JSON under `logs/` (full wall, all actions, results)
@@ -223,4 +223,4 @@ This project was **fully implemented by [Claude Code](https://claude.ai/claude-c
 
 ### Later Iterations
 
-All subsequent versions were also implemented by Claude Code, including: multilingual interface and PyPI release (v1.1.0), the A+B time control system and settings menu (v1.1.x), rule-engine verification against 1,000 real Tenhou games, a full engine audit in 2026-06 (fixed tenhou/chankan/kita-dora/riichi-stick-conservation bugs, removed dead code, enforced layering, added LRU caching), and the step-by-step game replay feature.
+All subsequent versions were also implemented by Claude Code, including: multilingual interface and PyPI release (v1.1.0), the A+B time control system and settings menu (v1.1.x), rule-engine verification against 1,000 real Tenhou games, a full engine audit in 2026-06 (fixed tenhou/chankan/kita-dora/riichi-stick-conservation bugs, removed dead code, enforced layering, added LRU caching), the step-by-step game replay feature, and UI improvements (AI riichi tile marker fix, orange red-five tiles, call/ron target highlighting, restructured result screen).
