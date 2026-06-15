@@ -17,7 +17,8 @@ from mahjong.player.greedy_ai import GreedyAI
 from mahjong.player.human import HumanPlayer
 from mahjong.ui.renderer import Renderer
 from mahjong.ui.board_layout import (
-    render_win_screen, render_draw_screen, render_scores, render_game_end,
+    render_win_announcement, render_yaku_summary, render_draw_screen,
+    render_scores, render_score_changes, render_game_end,
     render_round_end_hands
 )
 from mahjong.engine.game_logger import GameLogger
@@ -312,27 +313,27 @@ def _show_round_result(game, result, player_names):
         else:
             render_draw_screen(console, result.draw_type)
     else:
+        # Announcement banners only (no yaku yet — shown after hands)
         for winner_idx, score_result in result.score_results:
             winner_name = player_names[winner_idx]
-            is_tsumo = score_result.is_tsumo
             loser_name = player_names[result.loser] if result.loser is not None else ""
-            render_win_screen(console, winner_name, score_result,
-                              is_tsumo, loser_name)
+            render_win_announcement(console, winner_name,
+                                    score_result.is_tsumo, loser_name)
 
-    # Show all players' hands
+    # Hands first (god view)
     render_round_end_hands(
         console, game.players, player_names,
         result.winners, result.loser,
     )
 
-    # Show score changes
-    console.print(f"  {t('label.score_changes')}")
-    for i in range(len(player_names)):
-        change = result.score_changes[i]
-        if change != 0:
-            sign = "+" if change > 0 else ""
-            style = "green" if change > 0 else "red"
-            console.print(f"    {player_names[i]}: [{style}]{sign}{change}[/{style}]")
+    # Yaku + point total for each winner
+    if not result.is_draw:
+        for _winner_idx, score_result in result.score_results:
+            render_yaku_summary(console, score_result)
+
+    # Merged score change + current score table
+    current_scores = [p.score for p in game.players]
+    render_score_changes(console, player_names, result.score_changes, current_scores)
 
 
 def main():

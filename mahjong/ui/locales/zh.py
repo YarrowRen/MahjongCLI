@@ -81,7 +81,8 @@ TRANSLATIONS = {
     "label.points_suffix": "点",
     "label.rank": "排名",
     "label.final_scores": "最终得分:",
-    "label.score_changes": "得分变化:",
+    "label.score_changes": "得分结算",
+    "label.score_change": "变化",
     "label.player_n": "玩家{n}",
 
     # === Mode Selection ===

@@ -81,7 +81,8 @@ TRANSLATIONS = {
     "label.points_suffix": "点",
     "label.rank": "順位",
     "label.final_scores": "最終得点:",
-    "label.score_changes": "得点変動:",
+    "label.score_changes": "得点精算",
+    "label.score_change": "変動",
     "label.player_n": "プレイヤー{n}",
 
     # === Mode Selection ===

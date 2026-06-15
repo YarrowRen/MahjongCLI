@@ -81,7 +81,8 @@ TRANSLATIONS = {
     "label.points_suffix": "pts",
     "label.rank": "Rank",
     "label.final_scores": "Final Scores:",
-    "label.score_changes": "Score Changes:",
+    "label.score_changes": "Score Settlement",
+    "label.score_change": "Change",
     "label.player_n": "Player {n}",
 
     # === Mode Selection ===

@@ -25,6 +25,7 @@ class OpponentView:
     discard_called: List[bool]
     num_closed_tiles: int
     kita_count: int = 0
+    riichi_discard_index: int = -1
 
 
 @dataclass
@@ -111,6 +112,7 @@ def build_game_view(
             discard_called=list(p.hand.discard_called),
             num_closed_tiles=len(p.hand.closed_tiles),
             kita_count=len(p.kita_tiles),
+            riichi_discard_index=p.hand.riichi_discard_index,
         ))
 
     return GameView(

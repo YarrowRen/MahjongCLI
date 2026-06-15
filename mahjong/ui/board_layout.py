@@ -71,6 +71,7 @@ def _render_all_players(console: Console, game_view: GameView):
         'discard_pool': hand.discard_pool,
         'discard_called': hand.discard_called,
         'riichi_discard_index': hand.riichi_discard_index,
+        'highlight_last': False,
     })
 
     # Opponents
@@ -85,7 +86,8 @@ def _render_all_players(console: Console, game_view: GameView):
             'melds': opp.melds,
             'discard_pool': opp.discard_pool,
             'discard_called': opp.discard_called,
-            'riichi_discard_index': -1,
+            'riichi_discard_index': opp.riichi_discard_index,
+            'highlight_last': opp.seat == game_view.last_discard_player,
         })
 
     entries.sort(key=lambda e: e['wind'].value)
@@ -120,6 +122,7 @@ def _render_player_row(console: Console, entry: dict):
             entry['discard_pool'],
             entry['discard_called'],
             entry['riichi_discard_index'],
+            highlight_last=entry.get('highlight_last', False),
         ))
         console.print(discard_text)
     else:
@@ -231,10 +234,9 @@ def render_action_prompt(console: Console, available):
         console.print(f"  {t('prompt.choose_action')} {' '.join(actions)}")
 
 
-def render_win_screen(console: Console, player_name: str,
-                      score_result: ScoreResult, is_tsumo: bool,
-                      loser_name: str = ""):
-    """Render winning screen with yaku and score details."""
+def render_win_announcement(console: Console, player_name: str,
+                            is_tsumo: bool, loser_name: str = ""):
+    """Render just the win announcement banner."""
     console.print()
     if is_tsumo:
         console.print(Panel(
@@ -247,7 +249,9 @@ def render_win_screen(console: Console, player_name: str,
             border_style="green"
         ))
 
-    # Yaku list
+
+def render_yaku_summary(console: Console, score_result: ScoreResult):
+    """Render yaku table and score summary line."""
     table = Table(title=t('label.yaku_list'), show_header=True, border_style="cyan")
     table.add_column(t('label.yaku_name'), style="bold")
     table.add_column(t('label.han_count'), justify="right")
@@ -257,15 +261,21 @@ def render_win_screen(console: Console, player_name: str,
 
     console.print(table)
 
-    # Score summary
     pts = t('label.points_suffix')
     if score_result.is_yakuman:
         console.print(f"  [bold red]{t('msg.yakuman', points=score_result.total_points)}[/bold red]")
     else:
         console.print(f"  {rank_display(score_result)} "
-                       f"{score_result.total_points}{pts}")
-
+                      f"{score_result.total_points}{pts}")
     console.print()
+
+
+def render_win_screen(console: Console, player_name: str,
+                      score_result: ScoreResult, is_tsumo: bool,
+                      loser_name: str = ""):
+    """Render winning screen (announcement + yaku). Kept for compatibility."""
+    render_win_announcement(console, player_name, is_tsumo, loser_name)
+    render_yaku_summary(console, score_result)
 
 
 def render_round_end_hands(console: Console, players: list,
@@ -357,6 +367,29 @@ def render_scores(console: Console, players: list):
     for name, score in players:
         style = "green" if score > 0 else "red" if score < 0 else ""
         table.add_row(name, f"{score}{pts}", style=style)
+
+    console.print(table)
+
+
+def render_score_changes(console: Console, player_names: list,
+                         score_changes: list, current_scores: list):
+    """Render a merged table of score changes and current totals."""
+    pts = t('label.points_suffix')
+    table = Table(title=t('label.score_changes'), border_style="cyan")
+    table.add_column(t('label.player'), style="bold")
+    table.add_column(t('label.score_change'), justify="right")
+    table.add_column(t('label.score'), justify="right")
+
+    for i, name in enumerate(player_names):
+        change = score_changes[i]
+        score = current_scores[i]
+        if change > 0:
+            change_str = f"[green]+{change}[/green]"
+        elif change < 0:
+            change_str = f"[red]{change}[/red]"
+        else:
+            change_str = f"[dim]±0[/dim]"
+        table.add_row(name, change_str, f"{score}{pts}")
 
     console.print(table)
 

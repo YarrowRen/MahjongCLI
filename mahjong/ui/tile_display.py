@@ -56,13 +56,11 @@ def tile_to_rich_text(tile: Tile, highlight: bool = False) -> Text:
     if tile.is_red:
         suit_char = {TileSuit.MAN: 'm', TileSuit.PIN: 'p', TileSuit.SOU: 's'}
         name = f"0{suit_char[tile.suit]}"
-        style = "bold red on white"
+        style = "bold dark_orange on white" if highlight else "bold dark_orange"
     else:
         name = names[tile.index34]
         color = SUIT_COLORS[tile.suit]
-        style = f"bold {color}"
-        if highlight:
-            style += " on white"
+        style = f"bold {color} on white" if highlight else f"bold {color}"
 
     return Text(f"[{name}]", style=style)
 
@@ -95,18 +93,19 @@ def tiles_to_rich_text(tiles: list, separator: str = " ") -> Text:
 
 
 def format_discard_pool(tiles: list, called: list = None,
-                        riichi_index: int = -1) -> Text:
+                        riichi_index: int = -1,
+                        highlight_last: bool = False) -> Text:
     """Format a discard pool with called tiles marked."""
     result = Text()
+    last_idx = len(tiles) - 1
     for i, tile in enumerate(tiles):
         if i > 0:
             result.append(" ")
-        t = tile_to_rich_text(tile)
+        is_target = highlight_last and i == last_idx
+        t = tile_to_rich_text(tile, highlight=is_target)
         if called and i < len(called) and called[i]:
-            # Tile was called - show with strikethrough
             t.stylize("dim")
         if i == riichi_index:
-            # Riichi declaration tile - show sideways (indicated by parentheses)
             t = Text("(", style="bold") + t + Text(")", style="bold")
         result.append_text(t)
     return result
