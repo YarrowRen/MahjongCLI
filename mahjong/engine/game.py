@@ -150,13 +150,6 @@ class GameState:
         if self.round_wind == Wind.SOUTH and self.round_number >= self.config.num_players:
             return True
 
-        # Check if leader has target score at end of all-last
-        max_rounds = self.config.num_players
-        if self.round_wind == Wind.SOUTH and self.round_number == max_rounds - 1:
-            top_score = max(p.score for p in self.players)
-            if top_score >= self.config.target_score:
-                return True
-
         return False
 
     def _finalize(self):
