@@ -84,6 +84,7 @@ TRANSLATIONS = {
     "label.score_changes": "得点精算",
     "label.score_change": "変動",
     "label.player_n": "プレイヤー{n}",
+    "label.kita_count": "【北×{n}】",
 
     # === Mode Selection ===
     "mode.select": "ゲームモードを選択:",

@@ -37,6 +37,15 @@ class GreedyAI(Player):
             return Action(ActionType.RIICHI, available.player,
                           riichi_discard=best_discard)
 
+        # Take kita only when North tile doesn't worsen shanten
+        # (e.g. skip if North is forming a pair head or triplet)
+        if available.can_kita:
+            current_34 = game_view.my_hand.to_34_array()
+            test_34 = list(current_34)
+            test_34[30] -= 1  # North = index34 30
+            if shanten(test_34) <= shanten(current_34):
+                return Action(ActionType.KITA, available.player)
+
         # Consider ankan (if it doesn't worsen shanten)
         if available.can_ankan:
             for kan_tiles in available.can_ankan:

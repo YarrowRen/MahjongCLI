@@ -248,30 +248,43 @@ class RoundState:
         num = idx - suit_start  # 0-8
 
         closed_34 = hand.to_34_array()
+        closed = hand.closed_tiles
+
+        # Signature-based dedup: avoid identical-looking combos (same index34+is_red pair).
+        # Red and normal 5 have the same index34 but different is_red, so they produce
+        # distinct signatures and both are offered to the player.
+        seen_sigs: set = set()
+
+        def _candidates(i34):
+            return [t for t in closed if t.index34 == i34]
+
+        def _add(tile_tuple):
+            sig = tuple(sorted(
+                (t.index34, t.is_red) for t in tile_tuple if t is not discard_tile
+            ))
+            if sig not in seen_sigs:
+                seen_sigs.add(sig)
+                actions.can_chi.append(
+                    Meld(MeldType.CHI, tile_tuple, discard_tile, from_player)
+                )
 
         # Pattern: [discard]-X-Y
         if num <= 6 and closed_34[idx + 1] >= 1 and closed_34[idx + 2] >= 1:
-            t1 = next(t for t in hand.closed_tiles if t.index34 == idx + 1)
-            t2 = next(t for t in hand.closed_tiles if t.index34 == idx + 2)
-            meld = Meld(MeldType.CHI, (discard_tile, t1, t2),
-                        discard_tile, from_player)
-            actions.can_chi.append(meld)
+            for t1 in _candidates(idx + 1):
+                for t2 in _candidates(idx + 2):
+                    _add((discard_tile, t1, t2))
 
         # Pattern: X-[discard]-Y
-        if num >= 1 and num <= 7 and closed_34[idx - 1] >= 1 and closed_34[idx + 1] >= 1:
-            t1 = next(t for t in hand.closed_tiles if t.index34 == idx - 1)
-            t2 = next(t for t in hand.closed_tiles if t.index34 == idx + 1)
-            meld = Meld(MeldType.CHI, (t1, discard_tile, t2),
-                        discard_tile, from_player)
-            actions.can_chi.append(meld)
+        if 1 <= num <= 7 and closed_34[idx - 1] >= 1 and closed_34[idx + 1] >= 1:
+            for t1 in _candidates(idx - 1):
+                for t2 in _candidates(idx + 1):
+                    _add((t1, discard_tile, t2))
 
         # Pattern: X-Y-[discard]
         if num >= 2 and closed_34[idx - 2] >= 1 and closed_34[idx - 1] >= 1:
-            t1 = next(t for t in hand.closed_tiles if t.index34 == idx - 2)
-            t2 = next(t for t in hand.closed_tiles if t.index34 == idx - 1)
-            meld = Meld(MeldType.CHI, (t1, t2, discard_tile),
-                        discard_tile, from_player)
-            actions.can_chi.append(meld)
+            for t1 in _candidates(idx - 2):
+                for t2 in _candidates(idx - 1):
+                    _add((t1, t2, discard_tile))
 
     def _no_calls_made(self) -> bool:
         """Whether no chi/pon/kan (or kita in sanma) has happened this round."""

@@ -84,6 +84,7 @@ TRANSLATIONS = {
     "label.score_changes": "Score Settlement",
     "label.score_change": "Change",
     "label.player_n": "Player {n}",
+    "label.kita_count": "[Kita x{n}]",
 
     # === Mode Selection ===
     "mode.select": "Select game mode:",

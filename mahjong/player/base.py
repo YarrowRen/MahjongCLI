@@ -53,6 +53,9 @@ class GameView:
     dora_indicators: List[Tile] = field(default_factory=list)
     round_label: str = ""
 
+    # Sanma kita count (self)
+    my_kita_count: int = 0
+
     # Turn info
     last_discard: Optional[Tile] = None
     last_discard_player: Optional[int] = None
@@ -121,6 +124,7 @@ def build_game_view(
         my_wind=me.seat_wind,
         my_score=me.score,
         is_dealer=me.is_dealer,
+        my_kita_count=len(me.kita_tiles),
         opponents=opponents,
         round_wind=round_wind,
         honba=honba,

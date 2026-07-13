@@ -67,6 +67,7 @@ def _render_all_players(console: Console, game_view: GameView):
         'score': game_view.my_score,
         'is_dealer': game_view.is_dealer,
         'is_riichi': hand.is_riichi,
+        'kita_count': game_view.my_kita_count,
         'melds': hand.melds,
         'discard_pool': hand.discard_pool,
         'discard_called': hand.discard_called,
@@ -83,6 +84,7 @@ def _render_all_players(console: Console, game_view: GameView):
             'score': opp.score,
             'is_dealer': opp.is_dealer,
             'is_riichi': opp.is_riichi,
+            'kita_count': opp.kita_count,
             'melds': opp.melds,
             'discard_pool': opp.discard_pool,
             'discard_called': opp.discard_called,
@@ -101,6 +103,8 @@ def _render_player_row(console: Console, entry: dict):
     wind_str = wind_display(entry['wind'])
     dealer_mark = f" ({t('label.dealer_mark')})" if entry['is_dealer'] else ""
     riichi_mark = f" [bold red]【{t('label.riichi_mark')}】[/bold red]" if entry['is_riichi'] else ""
+    kita_mark = (f" [bold yellow]{t('label.kita_count', n=entry['kita_count'])}[/bold yellow]"
+                 if entry.get('kita_count', 0) > 0 else "")
 
     if entry['is_self']:
         name_display = f"[bold cyan]{t('label.you')}[/bold cyan]"
@@ -110,7 +114,7 @@ def _render_player_row(console: Console, entry: dict):
     pts = t('label.points_suffix')
     console.print(
         f"  {name_display} ({wind_str}{dealer_mark}) "
-        f"{entry['score']}{pts}{riichi_mark}"
+        f"{entry['score']}{pts}{riichi_mark}{kita_mark}"
     )
 
     _render_melds_line(console, entry['melds'])
