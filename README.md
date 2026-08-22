@@ -1,3 +1,5 @@
+
+
 # 🀄️ Japanese Riichi Mahjong - Terminal CLI
 
 A fully-featured Japanese Riichi Mahjong terminal CLI game supporting 4-player (yonma) and 3-player (sanma) modes, with multilingual interface (Chinese/Japanese/English), built with Python + Rich.
@@ -90,7 +92,7 @@ pytest tests/
 ## Project Structure
 
 ```
-game/
+MahjongCLI/
 ├── main.py                     # Entry point (backward compatible)
 ├── mahjong/
 │   ├── cli.py                  # CLI entry point (riichi command)
